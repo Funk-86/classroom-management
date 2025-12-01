@@ -1,0 +1,19 @@
+# Railway 部署配置文件
+# 此文件用于明确指定构建和启动命令
+# Railway 会自动读取此配置文件来设置构建和启动命令
+
+[phases.setup]
+nixPkgs = ["maven", "jdk17"]
+
+[phases.build]
+cmds = [
+    "chmod +x ./mvnw || true",
+    "./mvnw clean package -DskipTests || mvn clean package -DskipTests"
+]
+
+[start]
+cmd = "java -jar target/classroom-1.0-SNAPSHOT.jar"
+
+# 如果 Railway UI 中的启动命令与此不同，请在 UI 中手动修改
+# 或者清空 UI 中的启动命令，让 Railway 使用此配置文件
+

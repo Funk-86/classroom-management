@@ -1,0 +1,1 @@
+web: java -jar target/classroom-1.0-SNAPSHOT.jar
