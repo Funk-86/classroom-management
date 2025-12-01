@@ -1,8 +1,8 @@
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${MYSQL_HOST:${DB_HOST:localhost}}:${MYSQL_PORT:${DB_PORT:3306}}/${MYSQL_DATABASE:${DB_NAME:classroom_management}}?useUnicode=true&characterEncoding=utf8&useSSL=false&requireSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&autoReconnect=true&failOverReadOnly=false&maxReconnects=10&verifyServerCertificate=false
-    username: ${MYSQL_USERNAME:${DB_USERNAME:root}}  # 修改这里：MYSQL_USER → MYSQL_USERNAME
+    url: jdbc:mysql://${MYSQL_HOST:${DB_HOST:localhost}}:${MYSQL_PORT:${DB_PORT:3306}}/${MYSQL_DATABASE:${DB_NAME:classroom_management}}?useUnicode=true&characterEncoding=utf8&useSSL=true&requireSSL=true&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&autoReconnect=true&failOverReadOnly=false&maxReconnects=10&verifyServerCertificate=false
+    username: ${MYSQL_USERNAME:${DB_USERNAME:root}}
     password: ${MYSQL_PASSWORD:${DB_PASSWORD:}}
     hikari:
       maximum-pool-size: 20
