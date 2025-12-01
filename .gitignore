@@ -1,0 +1,25 @@
+# 环境变量文件
+.env
+.env.local
+.env.*.local
+
+# 日志文件
+logs/
+*.log
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# 编译输出
+target/
+*.class
+*.jar
+*.war
+
+# 系统文件
+.DS_Store
+Thumbs.db

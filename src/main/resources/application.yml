@@ -1,0 +1,48 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:classroom_management}?useUnicode=true&characterEncoding=utf8&useSSL=${DB_SSL:false}&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&autoReconnect=true&failOverReadOnly=false&maxReconnects=10
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
+
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+    serialization:
+      write-dates-as-timestamps: false
+
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: org.example.classroom.entity
+  global-config:
+    db-config:
+      id-type: assign_id
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  configuration:
+    map-underscore-to-camel-case: true
+    # 生产环境应使用文件日志，开发环境可启用
+    # log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+server:
+  port: 8080
+  address: 0.0.0.0
+  servlet:
+    context-path: /api
+
+logging:
+  level:
+    org.example.classroom: DEBUG
+    com.baomidou.mybatisplus: DEBUG
+
+# CORS配置
+cors:
+  allowed-origins: http://localhost:3000,http://localhost:8080,http://127.0.0.1:5500,http://localhost:5500
