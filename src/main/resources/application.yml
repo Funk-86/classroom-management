@@ -1,9 +1,8 @@
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    # 优先使用Zeabur自动生成的环境变量，如果没有则使用自定义的DB_*变量
-    url: jdbc:mysql://${MYSQL_HOST:${DB_HOST:localhost}}:${MYSQL_PORT:${DB_PORT:3306}}/${MYSQL_DATABASE:${DB_NAME:classroom_management}}?useUnicode=true&characterEncoding=utf8&useSSL=${DB_SSL:false}&requireSSL=${DB_SSL:false}&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&autoReconnect=true&failOverReadOnly=false&maxReconnects=10&verifyServerCertificate=false
-    username: ${MYSQL_USER:${DB_USERNAME:root}}
+    url: jdbc:mysql://${MYSQL_HOST:${DB_HOST:localhost}}:${MYSQL_PORT:${DB_PORT:3306}}/${MYSQL_DATABASE:${DB_NAME:classroom_management}}?useUnicode=true&characterEncoding=utf8&useSSL=false&requireSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&autoReconnect=true&failOverReadOnly=false&maxReconnects=10&verifyServerCertificate=false
+    username: ${MYSQL_USERNAME:${DB_USERNAME:root}}  # 修改这里：MYSQL_USER → MYSQL_USERNAME
     password: ${MYSQL_PASSWORD:${DB_PASSWORD:}}
     hikari:
       maximum-pool-size: 20
