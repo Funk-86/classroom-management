@@ -1,9 +1,9 @@
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${MYSQL_HOST:${DB_HOST:localhost}}:${MYSQL_PORT:${DB_PORT:3306}}/${MYSQL_DATABASE:${DB_NAME:classroom_management}}?useUnicode=true&characterEncoding=utf8&useSSL=true&requireSSL=true&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&autoReconnect=true&failOverReadOnly=false&maxReconnects=10&verifyServerCertificate=false
+    url: jdbc:mysql://${MYSQL_HOST:${DB_HOST:sjc1.clusters.zeabur.com}}:${MYSQL_PORT:${DB_PORT:25340}}/${MYSQL_DATABASE:${DB_NAME:classroom_management}}?useUnicode=true&characterEncoding=utf8&useSSL=true&requireSSL=true&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&autoReconnect=true&failOverReadOnly=false&maxReconnects=10&verifyServerCertificate=false
     username: ${MYSQL_USERNAME:${DB_USERNAME:root}}
-    password: ${MYSQL_PASSWORD:${DB_PASSWORD:}}
+    password: ${MYSQL_PASSWORD:${DB_PASSWORD:RJ5r1vyqC76zgUZ032a8biFe94PVWXEI}}
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
