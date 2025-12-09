@@ -139,7 +139,12 @@ public class AttendanceServiceImpl extends ServiceImpl<AttendanceSessionMapper, 
         System.out.println("当前时间是否在开始时间之前: " + now.isBefore(session.getStartTime()));
         System.out.println("当前时间是否在结束时间之后: " + now.isAfter(session.getEndTime()));
 
-        if (now.isBefore(session.getStartTime()) || now.isAfter(session.getEndTime())) {
+        // 判断是否在签到时间内：当前时间 >= 开始时间 且 当前时间 <= 结束时间
+        // 允许在结束时间点签到
+        boolean isBeforeStart = now.isBefore(session.getStartTime());
+        boolean isAfterEnd = now.isAfter(session.getEndTime());
+
+        if (isBeforeStart || isAfterEnd) {
             String errorMsg = String.format("不在签到时间内 - 当前时间: %s, 签到时间: %s 至 %s",
                     now, session.getStartTime(), session.getEndTime());
             throw new RuntimeException(errorMsg);
