@@ -21,9 +21,10 @@ public interface AnnouncementMapper extends BaseMapper<Announcement> {
     IPage<Announcement> selectActiveAnnouncements(Page<Announcement> page);
 
     // 查询最新公告（限制数量）
+    // 显示"生效中"和"未生效"的公告，不显示"已过期"的公告
     @Select("SELECT a.*, u.user_name as admin_name FROM announcements a " +
             "LEFT JOIN users u ON a.admin_id = u.user_id " +
-            "WHERE a.start_time <= NOW() AND a.end_time >= NOW() " +
+            "WHERE a.end_time >= NOW() " +
             "ORDER BY a.priority DESC, a.created_at DESC LIMIT #{limit}")
     List<Announcement> selectLatestAnnouncements(@Param("limit") Integer limit);
 
