@@ -9,10 +9,10 @@ import org.example.classroom.service.AttendanceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -125,7 +125,8 @@ public class AttendanceServiceImpl extends ServiceImpl<AttendanceSessionMapper, 
             throw new RuntimeException("签到活动已结束或已取消");
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        // 统一使用东八区时间，避免服务器默认时区导致的误判
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
         if (now.isBefore(session.getStartTime()) || now.isAfter(session.getEndTime())) {
             throw new RuntimeException("不在签到时间内");
         }
