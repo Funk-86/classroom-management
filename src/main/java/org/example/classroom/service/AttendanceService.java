@@ -37,7 +37,7 @@ public interface AttendanceService extends IService<AttendanceSession> {
     List<AttendanceRecord> getStudentRecords(String studentId, Integer limit);
 
     // 更新签到记录状态（教师手动修改）
-    boolean updateRecordStatus(String recordId, String studentId, Integer status);
+    boolean updateRecordStatus(String recordId, String studentId, String sessionId, Integer status);
 
     // 计算两点之间的距离（米）
     double calculateDistance(BigDecimal lat1, BigDecimal lon1, BigDecimal lat2, BigDecimal lon2);

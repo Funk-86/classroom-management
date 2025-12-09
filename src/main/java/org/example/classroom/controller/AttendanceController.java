@@ -159,13 +159,19 @@ public class AttendanceController {
         try {
             String recordId = (String) params.get("recordId");
             String studentId = (String) params.get("studentId");
+            String sessionId = (String) params.get("sessionId"); // 添加sessionId参数
             Integer status = (Integer) params.get("status");
 
-            if (recordId == null || studentId == null || status == null) {
+            if (studentId == null || status == null) {
                 return R.error("参数不完整");
             }
 
-            boolean success = attendanceService.updateRecordStatus(recordId, studentId, status);
+            // 如果recordId是temp_开头，必须提供sessionId
+            if (recordId != null && recordId.startsWith("temp_") && sessionId == null) {
+                return R.error("参数不完整：缺少签到活动ID");
+            }
+
+            boolean success = attendanceService.updateRecordStatus(recordId, studentId, sessionId, status);
             if (success) {
                 return R.ok();
             } else {

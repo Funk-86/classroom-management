@@ -209,10 +209,46 @@ public class AttendanceServiceImpl extends ServiceImpl<AttendanceSessionMapper, 
     }
 
     @Override
-    public boolean updateRecordStatus(String recordId, String studentId, Integer status) {
-        AttendanceRecord record = recordMapper.selectById(recordId);
-        if (record == null) {
-            throw new RuntimeException("签到记录不存在");
+    public boolean updateRecordStatus(String recordId, String studentId, String sessionId, Integer status) {
+        AttendanceRecord record = null;
+
+        // 如果recordId以temp_开头，说明这是未签到的学生，需要先创建记录
+        if (recordId != null && recordId.startsWith("temp_")) {
+            if (sessionId == null || sessionId.trim().isEmpty()) {
+                throw new RuntimeException("无法创建签到记录：缺少签到活动信息");
+            }
+
+            // 检查是否已存在该学生的签到记录
+            record = recordMapper.selectOne(
+                    new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<AttendanceRecord>()
+                            .eq("session_id", sessionId)
+                            .eq("student_id", studentId)
+            );
+
+            // 如果不存在，创建新记录
+            if (record == null) {
+                // 获取签到活动信息
+                AttendanceSession session = sessionMapper.selectSessionWithDetail(sessionId);
+                if (session == null) {
+                    throw new RuntimeException("签到活动不存在");
+                }
+
+                // 创建新的签到记录
+                record = new AttendanceRecord();
+                record.setSessionId(sessionId);
+                record.setStudentId(studentId);
+                record.setCheckinTime(LocalDateTime.now(ZoneId.of("Asia/Shanghai")));
+                // 不设置位置信息，因为这是教师手动标记的
+                record.setLatitude(null);
+                record.setLongitude(null);
+                record.setDistance(null);
+            }
+        } else {
+            // 正常的recordId，直接查询
+            record = recordMapper.selectById(recordId);
+            if (record == null) {
+                throw new RuntimeException("签到记录不存在");
+            }
         }
 
         // 验证学生ID是否匹配
@@ -223,7 +259,9 @@ public class AttendanceServiceImpl extends ServiceImpl<AttendanceSessionMapper, 
         // status字段不在数据库表中，需要转换为checkinStatus
         if (status == 0 || status == 1) {
             record.setCheckinStatus(1); // 成功签到
-            record.setCheckinTime(LocalDateTime.now());
+            if (record.getCheckinTime() == null) {
+                record.setCheckinTime(LocalDateTime.now(ZoneId.of("Asia/Shanghai")));
+            }
         } else {
             record.setCheckinStatus(2); // 失败/缺勤
         }
@@ -231,8 +269,16 @@ public class AttendanceServiceImpl extends ServiceImpl<AttendanceSessionMapper, 
         // 更新status字段用于业务逻辑
         record.setStatus(status);
 
-        int result = recordMapper.updateById(record);
-        return result > 0;
+        // 如果是新记录，执行插入；否则执行更新
+        if (record.getRecordId() == null) {
+            recordMapper.insert(record);
+        } else {
+            int result = recordMapper.updateById(record);
+            if (result <= 0) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
