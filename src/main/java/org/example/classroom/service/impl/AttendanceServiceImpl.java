@@ -9,10 +9,12 @@ import org.example.classroom.service.AttendanceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 @Service
@@ -125,10 +127,22 @@ public class AttendanceServiceImpl extends ServiceImpl<AttendanceSessionMapper, 
             throw new RuntimeException("签到活动已结束或已取消");
         }
 
-        // 统一使用东八区时间，避免服务器默认时区导致的误判
-        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
+        // 获取当前时间（东八区）
+        ZoneId shanghaiZone = ZoneId.of("Asia/Shanghai");
+        LocalDateTime now = ZonedDateTime.now(shanghaiZone).toLocalDateTime();
+
+        // 调试日志：输出时间信息
+        System.out.println("=== 签到时间检查 ===");
+        System.out.println("当前时间（东八区）: " + now);
+        System.out.println("签到开始时间: " + session.getStartTime());
+        System.out.println("签到结束时间: " + session.getEndTime());
+        System.out.println("当前时间是否在开始时间之前: " + now.isBefore(session.getStartTime()));
+        System.out.println("当前时间是否在结束时间之后: " + now.isAfter(session.getEndTime()));
+
         if (now.isBefore(session.getStartTime()) || now.isAfter(session.getEndTime())) {
-            throw new RuntimeException("不在签到时间内");
+            String errorMsg = String.format("不在签到时间内 - 当前时间: %s, 签到时间: %s 至 %s",
+                    now, session.getStartTime(), session.getEndTime());
+            throw new RuntimeException(errorMsg);
         }
 
         // 检查是否已签到
