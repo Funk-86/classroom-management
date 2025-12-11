@@ -87,5 +87,20 @@ public interface AttendanceSessionMapper extends BaseMapper<AttendanceSession> {
             @Param("startTime") java.sql.Time startTime,
             @Param("endTime") java.sql.Time endTime
     );
+
+    /**
+     * 查询指定教室正在进行的签到活动（用于扫码展示）
+     */
+    @Select("SELECT s.*, c.course_name, u.user_name as teacher_name, cl.classroom_name " +
+            "FROM attendance_sessions s " +
+            "LEFT JOIN courses c ON s.course_id = c.course_id " +
+            "LEFT JOIN users u ON s.teacher_id = u.user_id " +
+            "LEFT JOIN classrooms cl ON s.classroom_id = cl.classroom_id " +
+            "WHERE s.classroom_id = #{classroomId} " +
+            "AND s.status = 1 " +
+            "AND NOW() BETWEEN s.start_time AND s.end_time " +
+            "ORDER BY s.start_time DESC " +
+            "LIMIT 1")
+    AttendanceSession selectActiveSessionByClassroom(@Param("classroomId") String classroomId);
 }
 

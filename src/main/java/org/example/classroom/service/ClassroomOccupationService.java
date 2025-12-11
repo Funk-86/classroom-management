@@ -61,5 +61,10 @@ public interface ClassroomOccupationService {
             LocalTime startTime,
             LocalTime endTime
     );
+
+    /**
+     * 获取教室当前实时状态（扫码展示）
+     */
+    org.example.classroom.dto.ClassroomRealtimeResponse getRealtimeStatus(String classroomId);
 }
 

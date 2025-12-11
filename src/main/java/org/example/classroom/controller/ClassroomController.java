@@ -1,8 +1,10 @@
 package org.example.classroom.controller;
 
+import org.example.classroom.dto.ClassroomRealtimeResponse;
 import org.example.classroom.dto.ClassroomResponse;
 import org.example.classroom.dto.R;
 import org.example.classroom.entity.Classroom;
+import org.example.classroom.service.ClassroomOccupationService;
 import org.example.classroom.service.ClassroomService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +18,9 @@ public class ClassroomController {
 
     @Autowired
     private ClassroomService classroomService;
+
+    @Autowired
+    private ClassroomOccupationService classroomOccupationService;
 
     // 根据教学楼ID获取教室列表
     @GetMapping("/list")
@@ -105,6 +110,17 @@ public class ClassroomController {
             return R.ok("删除成功");
         } else {
             return R.error("删除失败");
+        }
+    }
+
+    // 扫码实时状态
+    @GetMapping("/realtime/{classroomId}")
+    public R getClassroomRealtime(@PathVariable String classroomId) {
+        try {
+            ClassroomRealtimeResponse data = classroomOccupationService.getRealtimeStatus(classroomId);
+            return R.ok().put("data", data);
+        } catch (Exception e) {
+            return R.error("获取教室实时状态失败: " + e.getMessage());
         }
     }
 

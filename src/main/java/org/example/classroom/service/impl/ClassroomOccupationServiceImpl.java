@@ -5,10 +5,20 @@ import org.example.classroom.dto.ClassroomOccupationInfo;
 import org.example.classroom.entity.AttendanceSession;
 import org.example.classroom.entity.CourseSchedule;
 import org.example.classroom.entity.Reservation;
+import org.example.classroom.entity.Course;
+import org.example.classroom.entity.AttendanceRecord;
 import org.example.classroom.mapper.AttendanceSessionMapper;
+import org.example.classroom.mapper.AttendanceRecordMapper;
+import org.example.classroom.mapper.CourseMapper;
 import org.example.classroom.mapper.CourseScheduleMapper;
 import org.example.classroom.mapper.ReservationMapper;
 import org.example.classroom.service.ClassroomOccupationService;
+import org.example.classroom.dto.ClassroomRealtimeResponse;
+import org.example.classroom.dto.ClassroomRealtimeResponse.AttendanceSummary;
+import org.example.classroom.dto.ClassroomRealtimeResponse.CurrentCourse;
+import org.example.classroom.dto.ClassroomRealtimeResponse.CurrentReservation;
+import org.example.classroom.dto.ClassroomRealtimeResponse.StudentLite;
+import org.example.classroom.util.WeekCalculator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -32,6 +42,12 @@ public class ClassroomOccupationServiceImpl implements ClassroomOccupationServic
 
     @Autowired
     private AttendanceSessionMapper attendanceSessionMapper;
+
+    @Autowired
+    private AttendanceRecordMapper attendanceRecordMapper;
+
+    @Autowired
+    private CourseMapper courseMapper;
 
     @Override
     public ClassroomConflictResult checkClassroomOccupation(
@@ -335,6 +351,124 @@ public class ClassroomOccupationServiceImpl implements ClassroomOccupationServic
      */
     private boolean isTimeOverlap(LocalTime start1, LocalTime end1, LocalTime start2, LocalTime end2) {
         return !(end1.compareTo(start2) <= 0 || start1.compareTo(end2) >= 0);
+    }
+
+    @Override
+    public ClassroomRealtimeResponse getRealtimeStatus(String classroomId) {
+        LocalDate today = LocalDate.now();
+        LocalTime now = LocalTime.now();
+        int currentWeek = WeekCalculator.getCurrentWeek();
+        int dayOfWeek = today.getDayOfWeek().getValue(); // 1-7
+
+        ClassroomRealtimeResponse response = new ClassroomRealtimeResponse();
+        response.setClassroomId(classroomId);
+
+        // 1) 当前课程安排
+        CourseSchedule currentSchedule = courseScheduleMapper.selectOne(
+                new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<CourseSchedule>()
+                        .eq("classroom_id", classroomId)
+                        .and(w -> w
+                                .and(w1 -> w1.eq("schedule_type", 0)
+                                        .eq("day_of_week", dayOfWeek)
+                                        .le("start_week", currentWeek)
+                                        .ge("end_week", currentWeek))
+                                .or(w2 -> w2.eq("schedule_type", 1)
+                                        .eq("schedule_date", today))
+                        )
+                        .le("start_time", now)
+                        .gt("end_time", now)
+                        .last("LIMIT 1")
+        );
+
+        if (currentSchedule != null) {
+            response.setActivityType("COURSE_SCHEDULE");
+            CurrentCourse cc = new CurrentCourse();
+            cc.setScheduleId(currentSchedule.getScheduleId());
+            cc.setCourseId(currentSchedule.getCourseId());
+            cc.setScheduleType(currentSchedule.getScheduleType());
+            cc.setDayOfWeek(currentSchedule.getDayOfWeek());
+            cc.setScheduleDate(currentSchedule.getScheduleDate());
+            cc.setStartTime(currentSchedule.getStartTime());
+            cc.setEndTime(currentSchedule.getEndTime());
+            cc.setStartWeek(currentSchedule.getStartWeek());
+            cc.setEndWeek(currentSchedule.getEndWeek());
+
+            if (currentSchedule.getCourseId() != null) {
+                Course course = courseMapper.selectCourseWithDetail(currentSchedule.getCourseId());
+                if (course != null) {
+                    cc.setCourseName(course.getCourseName());
+                    cc.setTeacherId(course.getTeacherId());
+                    cc.setTeacherName(course.getTeacherName());
+                }
+            }
+            response.setCurrentCourse(cc);
+        }
+
+        // 2) 若无课程，尝试预约占用
+        if (response.getActivityType() == null) {
+            Reservation reservation = reservationMapper.selectOne(
+                    new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<Reservation>()
+                            .eq("classroom_id", classroomId)
+                            .eq("date", today)
+                            .eq("status", 1)
+                            .le("start_time", now)
+                            .gt("end_time", now)
+                            .last("LIMIT 1")
+            );
+            if (reservation != null) {
+                response.setActivityType("RESERVATION");
+                CurrentReservation cr = new CurrentReservation();
+                cr.setReservationId(reservation.getReservationId());
+                cr.setUserId(reservation.getUserId());
+                cr.setUserName(reservation.getStudentName());
+                cr.setPurpose(reservation.getPurpose());
+                cr.setDate(reservation.getDate());
+                cr.setStartTime(reservation.getStartTime());
+                cr.setEndTime(reservation.getEndTime());
+                response.setCurrentReservation(cr);
+            } else {
+                response.setActivityType("NONE");
+            }
+        }
+
+        // 3) 当前签到活动（基于教室）
+        AttendanceSession activeSession = attendanceSessionMapper.selectActiveSessionByClassroom(classroomId);
+        if (activeSession != null) {
+            AttendanceSummary summary = new AttendanceSummary();
+            summary.setSessionId(activeSession.getSessionId());
+            summary.setSessionTitle(activeSession.getSessionTitle());
+
+            List<AttendanceRecord> records = attendanceRecordMapper.selectRecordsBySession(activeSession.getSessionId());
+            int checkinCount = (int) records.stream()
+                    .filter(r -> r.getCheckinStatus() != null && r.getCheckinStatus() == 1)
+                    .count();
+            List<StudentLite> absent = records.stream()
+                    .filter(r -> r.getCheckinStatus() == null || r.getCheckinStatus() != 1)
+                    .map(r -> {
+                        StudentLite lite = new StudentLite();
+                        lite.setStudentId(r.getStudentId());
+                        lite.setStudentName(r.getStudentName());
+                        return lite;
+                    })
+                    .collect(Collectors.toList());
+
+            summary.setTotalStudents(records.size());
+            summary.setCheckinCount(checkinCount);
+            summary.setAbsentCount(absent.size());
+            summary.setAbsentStudents(absent);
+            response.setAttendance(summary);
+        }
+
+        // 状态文本
+        if ("COURSE_SCHEDULE".equals(response.getActivityType()) || "RESERVATION".equals(response.getActivityType())) {
+            response.setStatus(1);
+            response.setStatusText("占用中");
+        } else {
+            response.setStatus(0);
+            response.setStatusText("空闲");
+        }
+
+        return response;
     }
 }
 
