@@ -223,6 +223,9 @@ public class CourseController {
     public R getScheduleList(@RequestParam(required = false) String courseId,
                              @RequestParam(required = false) String classroomId,
                              @RequestParam(required = false) String campusId,
+                             @RequestParam(required = false) String classId,
+                             @RequestParam(required = false) String semesterId,
+                             @RequestParam(required = false) Integer week,
                              @RequestParam(required = false) Integer dayOfWeek,
                              @RequestParam(required = false) Integer scheduleType,
                              @RequestParam(required = false) String startDate,
@@ -232,6 +235,19 @@ public class CourseController {
         try {
             LocalDate start = startDate != null ? LocalDate.parse(startDate) : null;
             LocalDate end = endDate != null ? LocalDate.parse(endDate) : null;
+
+            // 如果提供了classId和week，使用班级课表查询
+            if (classId != null && !classId.trim().isEmpty() && week != null) {
+                List<CourseSchedule> schedules = courseService.getClassTimetableByWeek(classId, week);
+                return R.ok().put("data", schedules);
+            }
+
+            // 如果提供了semesterId和week，通过学期查询
+            if (semesterId != null && !semesterId.trim().isEmpty() && week != null) {
+                // 通过学期ID获取课程，然后查询这些课程的安排
+                // 这里需要根据实际业务逻辑实现
+                // 暂时使用通用查询
+            }
 
             return R.ok().put("data", courseService.getSchedulesWithDetail(courseId, classroomId, campusId,
                     dayOfWeek, scheduleType, start, end, page, size));
