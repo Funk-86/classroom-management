@@ -5,6 +5,10 @@ import org.example.classroom.dto.ClassroomConflictResult;
 import org.example.classroom.dto.ClassroomResponse;
 import org.example.classroom.dto.R;
 import org.example.classroom.entity.Classroom;
+import org.example.classroom.entity.Building;
+import org.example.classroom.entity.Campus;
+import org.example.classroom.mapper.BuildingMapper;
+import org.example.classroom.mapper.CampusMapper;
 import org.example.classroom.service.ClassroomOccupationService;
 import org.example.classroom.service.ClassroomService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +30,12 @@ public class ClassroomController {
 
     @Autowired
     private ClassroomOccupationService classroomOccupationService;
+
+    @Autowired
+    private BuildingMapper buildingMapper;
+
+    @Autowired
+    private CampusMapper campusMapper;
 
     // 根据教学楼ID获取教室列表
     @GetMapping("/list")
@@ -160,6 +170,25 @@ public class ClassroomController {
         response.setFloorNum(classroom.getFloorNum());
         response.setCapacity(classroom.getCapacity());
         response.setEquipment(classroom.getEquipment());
+
+        // 关联教学楼和校区信息，便于前端按校区/教学楼分组
+        if (classroom.getBuildingId() != null) {
+            try {
+                Building building = buildingMapper.selectBuildingById(classroom.getBuildingId());
+                if (building != null) {
+                    response.setBuildingName(building.getBuildingName());
+                    response.setCampusId(building.getCampusId());
+                    if (building.getCampusId() != null) {
+                        Campus campus = campusMapper.selectById(building.getCampusId());
+                        if (campus != null) {
+                            response.setCampusName(campus.getCampusName());
+                        }
+                    }
+                }
+            } catch (Exception ignored) {
+                // 教学楼或校区信息异常时忽略，不影响主流程
+            }
+        }
 
         // 默认使用数据库状态，作为兜底
         Integer status = classroom.getStatus();
