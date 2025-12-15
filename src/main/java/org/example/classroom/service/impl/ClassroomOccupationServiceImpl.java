@@ -374,8 +374,10 @@ public class ClassroomOccupationServiceImpl implements ClassroomOccupationServic
 
     @Override
     public ClassroomRealtimeResponse getRealtimeStatus(String classroomId) {
-        LocalDate today = LocalDate.now();
-        LocalTime now = LocalTime.now();
+        // 统一使用东八区时间，避免服务器默认时区导致占用时间判断不一致
+        java.time.ZonedDateTime shanghaiNow = java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Shanghai"));
+        LocalDate today = shanghaiNow.toLocalDate();
+        LocalTime now = shanghaiNow.toLocalTime();
         int currentWeek = WeekCalculator.getCurrentWeek();
         int dayOfWeek = today.getDayOfWeek().getValue(); // 1-7
 
