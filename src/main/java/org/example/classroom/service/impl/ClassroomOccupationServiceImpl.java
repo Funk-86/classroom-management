@@ -360,9 +360,14 @@ public class ClassroomOccupationServiceImpl implements ClassroomOccupationServic
 
         StringBuilder message = new StringBuilder("教室在该时间段已被占用：\n");
         for (ClassroomOccupationInfo conflict : conflicts) {
+            String occupierName = conflict.getOccupierName();
+            if (occupierName == null || occupierName.trim().isEmpty()) {
+                // 如果占用者姓名为空，使用更友好的占位文本，避免出现 "null"
+                occupierName = "未知";
+            }
             message.append(String.format("- %s：%s (%s %s-%s)\n",
                     conflict.getOccupationType().getDescription(),
-                    conflict.getOccupierName(),
+                    occupierName,
                     conflict.getDate(),
                     conflict.getStartTime(),
                     conflict.getEndTime()
