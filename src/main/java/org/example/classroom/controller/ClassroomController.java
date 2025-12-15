@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -143,14 +145,15 @@ public class ClassroomController {
         // 默认使用数据库状态
         Integer status = classroom.getStatus();
         try {
-            // 使用统一的占用检测，判断当前时间段是否被占用
-            LocalDate today = LocalDate.now();
-            LocalTime now = LocalTime.now();
+            // 使用统一的占用检测，判断当前时间段是否被占用（固定东八区，避免服务器时区偏差）
+            ZonedDateTime shanghaiNow = ZonedDateTime.now(ZoneId.of("Asia/Shanghai"));
+            LocalDate today = shanghaiNow.toLocalDate();
+            LocalTime now = shanghaiNow.toLocalTime();
             ClassroomConflictResult conflict = classroomOccupationService.checkClassroomOccupation(
                     classroom.getClassroomId(),
                     today,
-                    now.minusMinutes(1), // 向前后各放宽1分钟，避免边界误差
-                    now.plusMinutes(1),
+                    now.minusMinutes(5), // 放宽5分钟，避免边界误差/秒级偏移
+                    now.plusMinutes(5),
                     null,
                     null
             );
