@@ -49,6 +49,9 @@ public class ClassroomOccupationServiceImpl implements ClassroomOccupationServic
     @Autowired
     private CourseMapper courseMapper;
 
+    @Autowired
+    private org.example.classroom.service.CourseService courseService;
+
     @Override
     public ClassroomConflictResult checkClassroomOccupation(
             String classroomId,
@@ -189,12 +192,31 @@ public class ClassroomOccupationServiceImpl implements ClassroomOccupationServic
                 classroomId, sqlDate, sqlStartTime, sqlEndTime
         );
 
+        // 兼容每周重复课程：如果未查到冲突，再按周次/星期几检测
+        if (conflicts.isEmpty()) {
+            int weekNumber = WeekCalculator.getWeekNumber(date);
+            List<CourseSchedule> weekly = courseService.getClassroomTimetableByWeek(classroomId, weekNumber);
+            int dayOfWeek = date.getDayOfWeek().getValue(); // 1-7
+            conflicts = weekly.stream()
+                    .filter(s -> (s.getDayOfWeek() != null && s.getDayOfWeek() == dayOfWeek)
+                            && isTimeOverlap(s.getStartTime(), s.getEndTime(), startTime, endTime))
+                    .collect(Collectors.toList());
+        }
+
         // 排除自身
         if (excludeScheduleId != null) {
             conflicts.removeIf(schedule -> schedule.getScheduleId().equals(excludeScheduleId));
         }
 
         return convertSchedulesToOccupationInfo(conflicts, date);
+    }
+
+    /**
+     * 时间重叠判断（含端点）
+     */
+    private boolean isTimeOverlap(LocalTime s1, LocalTime e1, LocalTime s2, LocalTime e2) {
+        if (s1 == null || e1 == null || s2 == null || e2 == null) return false;
+        return !e1.isBefore(s2) && !e2.isBefore(s1);
     }
 
     /**
@@ -344,13 +366,6 @@ public class ClassroomOccupationServiceImpl implements ClassroomOccupationServic
         }
 
         return message.toString();
-    }
-
-    /**
-     * 检查时间段是否重叠
-     */
-    private boolean isTimeOverlap(LocalTime start1, LocalTime end1, LocalTime start2, LocalTime end2) {
-        return !(end1.compareTo(start2) <= 0 || start1.compareTo(end2) >= 0);
     }
 
     @Override
