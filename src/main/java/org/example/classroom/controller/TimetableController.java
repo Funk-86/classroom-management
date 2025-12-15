@@ -126,6 +126,44 @@ public class TimetableController {
         }
     }
 
+    /**
+     * 获取教室某一天的课程安排（用于小程序教室详情“今日课程安排”）
+     */
+    @GetMapping("/classroom/day")
+    public R getClassroomTimetableByDay(@RequestParam String classroomId,
+                                        @RequestParam(required = false) Integer dayOfWeek,
+                                        @RequestParam(required = false) String date) {
+        try {
+            LocalDate queryDate = date != null ? LocalDate.parse(date) : LocalDate.now();
+            int weekNumber = courseService.getWeekNumber(queryDate);
+
+            // 先按周获取该教室全部课程
+            List<CourseSchedule> weekTimetable = courseService.getClassroomTimetableByWeek(classroomId, weekNumber);
+
+            int targetDay = dayOfWeek != null ? dayOfWeek : queryDate.getDayOfWeek().getValue();
+
+            List<CourseSchedule> dayCourses = weekTimetable.stream()
+                    .filter(schedule -> {
+                        if (schedule.getScheduleType() != null && schedule.getScheduleType() == 1) {
+                            // 单次安排，按具体日期匹配
+                            return queryDate.equals(schedule.getScheduleDate());
+                        } else {
+                            // 每周重复，按星期几匹配
+                            Integer d = schedule.getDayOfWeek();
+                            return d != null && d == targetDay;
+                        }
+                    })
+                    .collect(Collectors.toList());
+
+            return R.ok().put("data", dayCourses)
+                    .put("classroomId", classroomId)
+                    .put("date", queryDate.toString())
+                    .put("dayOfWeek", targetDay);
+        } catch (Exception e) {
+            return R.error("获取教室当日课表失败: " + e.getMessage());
+        }
+    }
+
     // 获取教学楼课表
     @GetMapping("/building")
     public R getBuildingTimetable(@RequestParam String buildingId,

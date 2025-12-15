@@ -551,15 +551,13 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
     public List<CourseSchedule> getClassroomTimetableByWeek(String classroomId, int weekNumber) {
         WeekCalculator.WeekDateRange weekRange = WeekCalculator.getDateRangeByWeek(weekNumber);
 
-        QueryWrapper<CourseSchedule> wrapper = new QueryWrapper<>();
-        wrapper.eq("classroom_id", classroomId)
-                .and(w -> w.and(w1 -> w1.eq("schedule_type", 0) // 每周重复
-                                .apply("({0} BETWEEN start_week AND end_week)", weekNumber))
-                        .or(w2 -> w2.eq("schedule_type", 1) // 单次安排
-                                .between("schedule_date", weekRange.getStartDate(), weekRange.getEndDate())));
-
-        wrapper.orderByAsc("day_of_week").orderByAsc("start_time");
-        return courseScheduleMapper.selectList(wrapper);
+        // 使用带详细信息的查询（包含课程名称、教师姓名等）
+        return courseScheduleMapper.selectClassroomSchedulesByWeek(
+                classroomId,
+                weekNumber,
+                weekRange.getStartDate(),
+                weekRange.getEndDate()
+        );
     }
 
     @Override

@@ -107,4 +107,29 @@ public interface CourseScheduleMapper extends BaseMapper<CourseSchedule> {
                                                        @Param("weekNumber") Integer weekNumber,
                                                        @Param("startDate") LocalDate startDate,
                                                        @Param("endDate") LocalDate endDate);
+
+    /**
+     * 按周次查询某教室的课程安排（包含课程名称、教师姓名等详细信息）
+     */
+    @Select("<script>" +
+            "SELECT cs.*, c.course_name, c.course_code, c.course_type, c.credit_hours, " +
+            "cl.classroom_name, b.building_name, camp.campus_name, u.user_name as teacher_name " +
+            "FROM course_schedules cs " +
+            "LEFT JOIN courses c ON cs.course_id = c.course_id " +
+            "LEFT JOIN classrooms cl ON cs.classroom_id = cl.classroom_id " +
+            "LEFT JOIN buildings b ON cl.building_id = b.building_id " +
+            "LEFT JOIN campuses camp ON cs.campus_id = camp.campus_id " +
+            "LEFT JOIN users u ON c.teacher_id = u.user_id " +
+            "WHERE cs.classroom_id = #{classroomId} " +
+            "AND ( " +
+            "  (cs.schedule_type = 0 AND #{weekNumber} BETWEEN cs.start_week AND cs.end_week) " +  // 每周重复
+            "  OR " +
+            "  (cs.schedule_type = 1 AND cs.schedule_date BETWEEN #{startDate} AND #{endDate}) " +   // 单次安排
+            ") " +
+            "ORDER BY cs.day_of_week, cs.start_time" +
+            "</script>")
+    List<CourseSchedule> selectClassroomSchedulesByWeek(@Param("classroomId") String classroomId,
+                                                        @Param("weekNumber") Integer weekNumber,
+                                                        @Param("startDate") LocalDate startDate,
+                                                        @Param("endDate") LocalDate endDate);
 }
