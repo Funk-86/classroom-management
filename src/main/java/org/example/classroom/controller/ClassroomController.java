@@ -142,7 +142,8 @@ public class ClassroomController {
         response.setFloorNum(classroom.getFloorNum());
         response.setCapacity(classroom.getCapacity());
         response.setEquipment(classroom.getEquipment());
-        // 默认使用数据库状态
+
+        // 默认使用数据库状态，作为兜底
         Integer status = classroom.getStatus();
         try {
             // 使用统一的占用检测，判断当前时间段是否被占用（固定东八区，避免服务器时区偏差）
@@ -157,10 +158,12 @@ public class ClassroomController {
                     null,
                     null
             );
+            // 优先以实时占用检测结果为准，避免数据库状态长期不被重置导致“假占用”
             if (conflict != null && conflict.isHasConflict()) {
-                status = 1; // 被占用
-            } else if (status == null) {
-                status = 0; // 没冲突且未设置则置为空闲
+                status = 1; // 当前时间段存在课程 / 预约 / 签到活动，占用中
+            } else {
+                // 无任何占用冲突时，一律视为空闲（不再沿用旧的占用状态）
+                status = 0;
             }
         } catch (Exception e) {
             // 出现异常时保持数据库状态，避免接口失败
