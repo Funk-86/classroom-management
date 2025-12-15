@@ -16,10 +16,16 @@ import java.util.List;
 @Mapper
 public interface CourseScheduleMapper extends BaseMapper<CourseSchedule> {
 
-    @Select("SELECT cs.*, c.course_name, c.course_code, c.course_type, c.credit_hours, " +
-            "c.teacher_id as teacher_id, " +
-            "cl.classroom_name, b.building_name, " +
-            "camp.campus_name, u.user_name as teacher_name " +
+    @Select("SELECT cs.*, " +
+            "c.course_name AS courseName, " +
+            "c.course_code AS courseCode, " +
+            "c.course_type AS courseType, " +
+            "c.credit_hours AS creditHours, " +
+            "c.teacher_id AS teacherId, " +
+            "cl.classroom_name AS classroomName, " +
+            "b.building_name AS buildingName, " +
+            "camp.campus_name AS campusName, " +
+            "u.user_name AS teacherName " +
             "FROM course_schedules cs " +
             "LEFT JOIN courses c ON cs.course_id = c.course_id " +
             "LEFT JOIN classrooms cl ON cs.classroom_id = cl.classroom_id " +
@@ -30,9 +36,15 @@ public interface CourseScheduleMapper extends BaseMapper<CourseSchedule> {
     CourseSchedule selectScheduleWithDetail(String scheduleId);
 
     @Select("<script>" +
-            "SELECT cs.*, c.course_name, c.course_code, c.course_type, c.credit_hours, " +
-            "cl.classroom_name, b.building_name, " +
-            "camp.campus_name, u.user_name as teacher_name " +
+            "SELECT cs.*, " +
+            "c.course_name AS courseName, " +
+            "c.course_code AS courseCode, " +
+            "c.course_type AS courseType, " +
+            "c.credit_hours AS creditHours, " +
+            "cl.classroom_name AS classroomName, " +
+            "b.building_name AS buildingName, " +
+            "camp.campus_name AS campusName, " +
+            "u.user_name AS teacherName " +
             "FROM course_schedules cs " +
             "LEFT JOIN courses c ON cs.course_id = c.course_id " +
             "LEFT JOIN classrooms cl ON cs.classroom_id = cl.classroom_id " +
@@ -59,10 +71,16 @@ public interface CourseScheduleMapper extends BaseMapper<CourseSchedule> {
                                                     @Param("endDate") LocalDate endDate);
 
     @Select({
-            "SELECT cs.*, c.course_name, c.course_code, c.course_type, c.credit_hours, ",
-            "c.teacher_id, ",
-            "cl.classroom_name, b.building_name, ",
-            "camp.campus_name, u.user_name as teacher_name ",
+            "SELECT cs.*, ",
+            "c.course_name AS courseName, ",
+            "c.course_code AS courseCode, ",
+            "c.course_type AS courseType, ",
+            "c.credit_hours AS creditHours, ",
+            "c.teacher_id AS teacherId, ",
+            "cl.classroom_name AS classroomName, ",
+            "b.building_name AS buildingName, ",
+            "camp.campus_name AS campusName, ",
+            "u.user_name AS teacherName ",
             "FROM course_schedules cs ",
             "LEFT JOIN courses c ON cs.course_id = c.course_id ",
             "LEFT JOIN classrooms cl ON cs.classroom_id = cl.classroom_id ",
@@ -84,9 +102,15 @@ public interface CourseScheduleMapper extends BaseMapper<CourseSchedule> {
     );
 
     @Select("<script>" +
-            "SELECT cs.*, c.course_name, c.course_code, c.course_type, c.credit_hours, " +
-            "cl.classroom_name, b.building_name, " +
-            "camp.campus_name, u.user_name as teacher_name " +
+            "SELECT cs.*, " +
+            "c.course_name AS courseName, " +
+            "c.course_code AS courseCode, " +
+            "c.course_type AS courseType, " +
+            "c.credit_hours AS creditHours, " +
+            "cl.classroom_name AS classroomName, " +
+            "b.building_name AS buildingName, " +
+            "camp.campus_name AS campusName, " +
+            "u.user_name AS teacherName " +
             "FROM course_schedules cs " +
             "LEFT JOIN courses c ON cs.course_id = c.course_id " +
             "LEFT JOIN classrooms cl ON cs.classroom_id = cl.classroom_id " +
@@ -112,8 +136,15 @@ public interface CourseScheduleMapper extends BaseMapper<CourseSchedule> {
      * 按周次查询某教室的课程安排（包含课程名称、教师姓名等详细信息）
      */
     @Select("<script>" +
-            "SELECT cs.*, c.course_name, c.course_code, c.course_type, c.credit_hours, " +
-            "cl.classroom_name, b.building_name, camp.campus_name, u.user_name as teacher_name " +
+            "SELECT cs.*, " +
+            "c.course_name AS courseName, " +
+            "c.course_code AS courseCode, " +
+            "c.course_type AS courseType, " +
+            "c.credit_hours AS creditHours, " +
+            "cl.classroom_name AS classroomName, " +
+            "b.building_name AS buildingName, " +
+            "camp.campus_name AS CampusName, " +
+            "u.user_name AS teacherName " +
             "FROM course_schedules cs " +
             "LEFT JOIN courses c ON cs.course_id = c.course_id " +
             "LEFT JOIN classrooms cl ON cs.classroom_id = cl.classroom_id " +
