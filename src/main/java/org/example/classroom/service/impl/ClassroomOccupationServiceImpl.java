@@ -49,9 +49,6 @@ public class ClassroomOccupationServiceImpl implements ClassroomOccupationServic
     @Autowired
     private CourseMapper courseMapper;
 
-    @Autowired
-    private org.example.classroom.service.CourseService courseService;
-
     @Override
     public ClassroomConflictResult checkClassroomOccupation(
             String classroomId,
@@ -195,7 +192,13 @@ public class ClassroomOccupationServiceImpl implements ClassroomOccupationServic
         // 兼容每周重复课程：如果未查到冲突，再按周次/星期几检测
         if (conflicts.isEmpty()) {
             int weekNumber = WeekCalculator.getWeekNumber(date);
-            List<CourseSchedule> weekly = courseService.getClassroomTimetableByWeek(classroomId, weekNumber);
+            WeekCalculator.WeekDateRange weekRange = WeekCalculator.getDateRangeByWeek(weekNumber);
+            List<CourseSchedule> weekly = courseScheduleMapper.selectSchedulesByClassAndWeek(
+                    null,
+                    weekNumber,
+                    weekRange.getStartDate(),
+                    weekRange.getEndDate()
+            );
             int dayOfWeek = date.getDayOfWeek().getValue(); // 1-7
             conflicts = weekly.stream()
                     .filter(s -> (s.getDayOfWeek() != null && s.getDayOfWeek() == dayOfWeek)
