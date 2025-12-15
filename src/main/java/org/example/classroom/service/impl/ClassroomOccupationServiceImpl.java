@@ -201,6 +201,7 @@ public class ClassroomOccupationServiceImpl implements ClassroomOccupationServic
             );
             int dayOfWeek = date.getDayOfWeek().getValue(); // 1-7
             conflicts = weekly.stream()
+                    .filter(s -> classroomId.equals(s.getClassroomId()))
                     .filter(s -> (s.getDayOfWeek() != null && s.getDayOfWeek() == dayOfWeek)
                             && isTimeOverlap(s.getStartTime(), s.getEndTime(), startTime, endTime))
                     .collect(Collectors.toList());
