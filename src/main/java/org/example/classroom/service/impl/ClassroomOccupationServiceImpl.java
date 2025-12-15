@@ -49,6 +49,9 @@ public class ClassroomOccupationServiceImpl implements ClassroomOccupationServic
     @Autowired
     private CourseMapper courseMapper;
 
+    @Autowired
+    private org.example.classroom.mapper.UserMapper userMapper;
+
     @Override
     public ClassroomConflictResult checkClassroomOccupation(
             String classroomId,
@@ -247,6 +250,37 @@ public class ClassroomOccupationServiceImpl implements ClassroomOccupationServic
      * 将预约转换为占用信息
      */
     private List<ClassroomOccupationInfo> convertReservationsToOccupationInfo(List<Reservation> reservations) {
+        if (reservations == null || reservations.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+
+        // 为没有带出申请人姓名的预约补充 user_name，避免冲突提示中出现“未知”
+        java.util.Set<String> missingNameUserIds = reservations.stream()
+                .filter(reservation -> (reservation.getStudentName() == null || reservation.getStudentName().trim().isEmpty())
+                        && reservation.getUserId() != null)
+                .map(Reservation::getUserId)
+                .collect(java.util.stream.Collectors.toSet());
+
+        if (!missingNameUserIds.isEmpty()) {
+            java.util.List<org.example.classroom.entity.User> users =
+                    userMapper.selectBatchIds(missingNameUserIds);
+            java.util.Map<String, String> userNameMap = users.stream()
+                    .collect(java.util.stream.Collectors.toMap(
+                            org.example.classroom.entity.User::getUserId,
+                            org.example.classroom.entity.User::getUserName
+                    ));
+
+            reservations.forEach(reservation -> {
+                if ((reservation.getStudentName() == null || reservation.getStudentName().trim().isEmpty())
+                        && reservation.getUserId() != null) {
+                    String name = userNameMap.get(reservation.getUserId());
+                    if (name != null && !name.trim().isEmpty()) {
+                        reservation.setStudentName(name);
+                    }
+                }
+            });
+        }
+
         return reservations.stream().map(reservation -> {
             return ClassroomOccupationInfo.builder()
                     .occupationType(ClassroomOccupationInfo.OccupationType.RESERVATION)
