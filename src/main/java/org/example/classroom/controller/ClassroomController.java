@@ -61,6 +61,24 @@ public class ClassroomController {
         return R.error("教室不存在");
     }
 
+    /**
+     * 获取所有教室的实时状态（按教学楼、楼层排序）
+     * 提供给小程序“查看教室”功能使用
+     */
+    @GetMapping("/status/all")
+    public R getAllClassroomsStatus() {
+        List<Classroom> classrooms = classroomService.list(
+                new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<Classroom>()
+                        .orderByAsc("building_id")
+                        .orderByAsc("floor_num")
+                        .orderByAsc("classroom_name")
+        );
+        List<ClassroomResponse> responses = classrooms.stream()
+                .map(this::convertToResponseWithRealtimeStatus)
+                .collect(Collectors.toList());
+        return R.ok().put("data", responses);
+    }
+
     // 搜索教室名称或编号
     @GetMapping("/search")
     public R searchClassroomsByNameOrId(@RequestParam String keyword) {
