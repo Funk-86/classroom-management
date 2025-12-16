@@ -57,16 +57,20 @@ public interface AttendanceSessionMapper extends BaseMapper<AttendanceSession> {
             "ORDER BY s.start_time DESC")
     List<AttendanceSession> selectCourseSessions(@Param("courseId") String courseId);
 
-    @Select("SELECT s.*, c.course_name, u.user_name as teacher_name, " +
+    @Select("SELECT DISTINCT s.*, c.course_name, u.user_name as teacher_name, " +
             "cl.classroom_name " +
             "FROM attendance_sessions s " +
             "LEFT JOIN courses c ON s.course_id = c.course_id " +
             "LEFT JOIN users u ON s.teacher_id = u.user_id " +
             "LEFT JOIN classrooms cl ON s.classroom_id = cl.classroom_id " +
             "WHERE s.status = 1 " +
-            "AND NOW() BETWEEN s.start_time AND s.end_time " +
+            "AND NOW() >= s.start_time AND NOW() <= s.end_time " +
             "AND s.course_id IN (" +
-            "  SELECT course_id FROM student_courses WHERE student_id = #{studentId} AND enrollment_status = 1" +
+            "  SELECT DISTINCT course_id FROM student_courses WHERE student_id = #{studentId} AND enrollment_status = 1 " +
+            "  UNION " +
+            "  SELECT DISTINCT course_id FROM courses co " +
+            "  INNER JOIN users st ON co.class_id = st.class_id " +
+            "  WHERE st.user_id = #{studentId} AND st.user_role = 0" +
             ") " +
             "ORDER BY s.start_time DESC")
     List<AttendanceSession> selectActiveSessionsForStudent(@Param("studentId") String studentId);
