@@ -28,81 +28,90 @@ public class AnnouncementServiceImpl extends ServiceImpl<AnnouncementMapper, Ann
         System.out.println("=== 查询有效公告 ===");
         System.out.println("页码: " + page + ", 每页大小: " + size);
 
-        // 直接使用mapper方法查询（包含JOIN和admin_name）
-        Page<Announcement> pageParam = new Page<>(page, size);
-        IPage<Announcement> result = baseMapper.selectActiveAnnouncements(pageParam);
+        // 由于MyBatis-Plus分页插件在处理带JOIN的@Select时有问题，直接手动查询和分页
+        // 1. 查询总数
+        QueryWrapper<Announcement> countWrapper = new QueryWrapper<>();
+        countWrapper.apply("start_time <= NOW()")
+                .apply("end_time >= NOW()");
+        long total = baseMapper.selectCount(countWrapper);
+        System.out.println("查询总数: " + total);
 
-        System.out.println("查询结果总数: " + result.getTotal());
-        System.out.println("查询结果记录数: " + (result.getRecords() != null ? result.getRecords().size() : 0));
+        // 2. 创建分页结果对象
+        Page<Announcement> result = new Page<>(page, size);
+        result.setTotal(total);
 
-        // 如果分页插件返回的总数为0但应该有数据，手动查询总数
-        if (result.getTotal() == 0 && (result.getRecords() == null || result.getRecords().isEmpty())) {
-            System.out.println("分页查询返回总数为0，手动查询总数...");
-            QueryWrapper<Announcement> countWrapper = new QueryWrapper<>();
-            countWrapper.apply("start_time <= NOW()")
-                    .apply("end_time >= NOW()");
-            long manualTotal = baseMapper.selectCount(countWrapper);
-            System.out.println("手动查询总数: " + manualTotal);
-
-            if (manualTotal > 0) {
-                // 如果手动查询有数据，说明分页插件有问题，直接查询所有数据然后手动分页
-                System.out.println("分页插件可能有问题，直接查询所有数据...");
-                List<Announcement> allAnnouncements = baseMapper.selectList(new QueryWrapper<Announcement>()
-                        .apply("start_time <= NOW()")
-                        .apply("end_time >= NOW()")
-                        .orderByDesc("priority")
-                        .orderByDesc("created_at"));
-
-                System.out.println("查询到所有公告数量: " + (allAnnouncements != null ? allAnnouncements.size() : 0));
-
-                // 手动填充admin_name
-                if (allAnnouncements != null && !allAnnouncements.isEmpty()) {
-                    List<String> adminIds = allAnnouncements.stream()
-                            .map(Announcement::getAdminId)
-                            .filter(id -> id != null && !id.isEmpty())
-                            .distinct()
-                            .collect(Collectors.toList());
-
-                    if (!adminIds.isEmpty()) {
-                        List<User> users = userMapper.selectBatchIds(adminIds);
-                        Map<String, String> adminNameMap = users.stream()
-                                .collect(Collectors.toMap(
-                                        User::getUserId,
-                                        User::getUserName,
-                                        (v1, v2) -> v1
-                                ));
-
-                        allAnnouncements.forEach(announcement -> {
-                            if (announcement.getAdminId() != null) {
-                                String adminName = adminNameMap.get(announcement.getAdminId());
-                                announcement.setAdminName(adminName != null ? adminName : "未知");
-                            }
-                        });
-                    }
-
-                    // 手动分页
-                    int start = (page - 1) * size;
-                    int end = Math.min(start + size, allAnnouncements.size());
-                    List<Announcement> pagedList = start < allAnnouncements.size()
-                            ? allAnnouncements.subList(start, end)
-                            : java.util.Collections.emptyList();
-
-                    result.setTotal(manualTotal);
-                    result.setRecords(pagedList);
-                    System.out.println("手动分页后记录数: " + pagedList.size());
-                }
-            }
+        // 3. 如果总数为0，直接返回空结果
+        if (total == 0) {
+            result.setRecords(java.util.Collections.emptyList());
+            System.out.println("总数为0，返回空结果");
+            return result;
         }
 
-        // admin_name已经在SQL中通过JOIN查询填充，但如果手动查询则需要手动填充
-        if (result.getRecords() != null && !result.getRecords().isEmpty()) {
-            System.out.println("查询成功，记录数: " + result.getRecords().size());
-            result.getRecords().forEach(announcement -> {
+        // 4. 查询所有符合条件的公告（使用自定义SQL查询，包含JOIN和admin_name）
+        // 由于selectActiveAnnouncements方法有分页问题，我们直接查询所有数据
+        System.out.println("开始查询公告列表...");
+
+        // 使用自定义SQL查询所有数据（不限制数量）
+        // 注意：这里需要创建一个不限制数量的查询方法，或者直接使用selectList
+        // 但selectList不支持JOIN，所以我们需要手动查询然后填充admin_name
+
+        // 先查询公告数据
+        QueryWrapper<Announcement> listWrapper = new QueryWrapper<>();
+        listWrapper.apply("start_time <= NOW()")
+                .apply("end_time >= NOW()")
+                .orderByDesc("priority")
+                .orderByDesc("created_at");
+        List<Announcement> allAnnouncements = baseMapper.selectList(listWrapper);
+
+        System.out.println("查询到所有公告数量: " + (allAnnouncements != null ? allAnnouncements.size() : 0));
+
+        // 5. 手动填充admin_name
+        if (allAnnouncements != null && !allAnnouncements.isEmpty()) {
+            List<String> adminIds = allAnnouncements.stream()
+                    .map(Announcement::getAdminId)
+                    .filter(id -> id != null && !id.isEmpty())
+                    .distinct()
+                    .collect(Collectors.toList());
+
+            System.out.println("需要查询的adminId数量: " + adminIds.size());
+
+            if (!adminIds.isEmpty()) {
+                List<User> users = userMapper.selectBatchIds(adminIds);
+                System.out.println("查询到的用户数量: " + users.size());
+
+                Map<String, String> adminNameMap = users.stream()
+                        .collect(Collectors.toMap(
+                                User::getUserId,
+                                User::getUserName,
+                                (v1, v2) -> v1
+                        ));
+
+                allAnnouncements.forEach(announcement -> {
+                    if (announcement.getAdminId() != null) {
+                        String adminName = adminNameMap.get(announcement.getAdminId());
+                        announcement.setAdminName(adminName != null ? adminName : "未知");
+                    }
+                });
+            }
+
+            // 6. 手动分页
+            int start = (page - 1) * size;
+            int end = Math.min(start + size, allAnnouncements.size());
+            List<Announcement> pagedList = start < allAnnouncements.size()
+                    ? allAnnouncements.subList(start, end)
+                    : java.util.Collections.emptyList();
+
+            result.setRecords(pagedList);
+            System.out.println("手动分页后记录数: " + pagedList.size());
+
+            // 输出详细信息
+            pagedList.forEach(announcement -> {
                 System.out.println("公告ID: " + announcement.getAnnouncementId() +
                         ", 标题: " + announcement.getTitle() +
                         ", 管理员: " + announcement.getAdminName());
             });
         } else {
+            result.setRecords(java.util.Collections.emptyList());
             System.out.println("查询结果为空");
         }
 
