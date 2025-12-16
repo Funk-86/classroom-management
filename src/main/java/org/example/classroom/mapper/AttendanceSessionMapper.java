@@ -57,6 +57,25 @@ public interface AttendanceSessionMapper extends BaseMapper<AttendanceSession> {
             "ORDER BY s.start_time DESC")
     List<AttendanceSession> selectCourseSessions(@Param("courseId") String courseId);
 
+    // 查询学生的签到活动（不限制时间，在Java代码中判断）
+    @Select("SELECT DISTINCT s.*, c.course_name, u.user_name as teacher_name, " +
+            "cl.classroom_name " +
+            "FROM attendance_sessions s " +
+            "LEFT JOIN courses c ON s.course_id = c.course_id " +
+            "LEFT JOIN users u ON s.teacher_id = u.user_id " +
+            "LEFT JOIN classrooms cl ON s.classroom_id = cl.classroom_id " +
+            "WHERE s.status = 1 " +
+            "AND s.course_id IN (" +
+            "  SELECT DISTINCT course_id FROM student_courses WHERE student_id = #{studentId} AND enrollment_status = 1 " +
+            "  UNION " +
+            "  SELECT DISTINCT course_id FROM courses co " +
+            "  INNER JOIN users st ON co.class_id = st.class_id " +
+            "  WHERE st.user_id = #{studentId} AND st.user_role = 0" +
+            ") " +
+            "ORDER BY s.start_time DESC")
+    List<AttendanceSession> selectActiveSessionsForStudentWithoutTimeCheck(@Param("studentId") String studentId);
+
+    // 保留原方法以兼容（但不再使用）
     @Select("SELECT DISTINCT s.*, c.course_name, u.user_name as teacher_name, " +
             "cl.classroom_name " +
             "FROM attendance_sessions s " +

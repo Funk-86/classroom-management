@@ -110,7 +110,47 @@ public class AttendanceServiceImpl extends ServiceImpl<AttendanceSessionMapper, 
 
     @Override
     public List<AttendanceSession> getActiveSessionsForStudent(String studentId) {
-        return sessionMapper.selectActiveSessionsForStudent(studentId);
+        // 先查询所有进行中的签到活动（不限制时间，在Java代码中判断）
+        List<AttendanceSession> allActiveSessions = sessionMapper.selectActiveSessionsForStudentWithoutTimeCheck(studentId);
+
+        if (allActiveSessions == null || allActiveSessions.isEmpty()) {
+            System.out.println("未找到学生 " + studentId + " 的签到活动（状态为1）");
+            return java.util.Collections.emptyList();
+        }
+
+        System.out.println("找到 " + allActiveSessions.size() + " 个进行中的签到活动（状态为1）");
+
+        // 获取当前时间（东八区）
+        ZoneId shanghaiZone = ZoneId.of("Asia/Shanghai");
+        LocalDateTime now = ZonedDateTime.now(shanghaiZone).toLocalDateTime();
+
+        System.out.println("当前时间（东八区）: " + now);
+
+        // 过滤出当前时间在签到时间范围内的活动
+        List<AttendanceSession> activeSessions = allActiveSessions.stream()
+                .filter(session -> {
+                    if (session.getStartTime() == null || session.getEndTime() == null) {
+                        System.out.println("签到活动 " + session.getSessionId() + " 的时间为空");
+                        return false;
+                    }
+
+                    LocalDateTime startTime = session.getStartTime();
+                    LocalDateTime endTime = session.getEndTime();
+
+                    // 判断：当前时间 >= 开始时间 且 当前时间 <= 结束时间
+                    boolean isActive = !now.isBefore(startTime) && !now.isAfter(endTime);
+
+                    // 调试日志
+                    System.out.println(String.format("签到活动 %s: 当前=%s, 开始=%s, 结束=%s, 是否活跃=%s",
+                            session.getSessionId(), now, startTime, endTime, isActive));
+
+                    return isActive;
+                })
+                .collect(java.util.stream.Collectors.toList());
+
+        System.out.println("过滤后找到 " + activeSessions.size() + " 个当前时间范围内的签到活动");
+
+        return activeSessions;
     }
 
     @Override
