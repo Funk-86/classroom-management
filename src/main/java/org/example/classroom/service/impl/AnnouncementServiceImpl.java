@@ -27,18 +27,28 @@ public class AnnouncementServiceImpl extends ServiceImpl<AnnouncementMapper, Ann
     public IPage<Announcement> getActiveAnnouncements(Integer page, Integer size) {
         Page<Announcement> pageParam = new Page<>(page, size);
 
-        // 使用QueryWrapper进行查询，确保分页正确
+        System.out.println("=== 查询有效公告 ===");
+        System.out.println("页码: " + page + ", 每页大小: " + size);
+
+        // 使用QueryWrapper进行查询，使用SQL函数NOW()避免时区问题
         QueryWrapper<Announcement> queryWrapper = new QueryWrapper<>();
-        queryWrapper.le("start_time", LocalDateTime.now())
-                .ge("end_time", LocalDateTime.now())
+        queryWrapper.apply("start_time <= NOW()")
+                .apply("end_time >= NOW()")
                 .orderByDesc("priority")
                 .orderByDesc("created_at");
+
+        System.out.println("查询条件: start_time <= NOW() AND end_time >= NOW()");
 
         // 使用selectPage进行分页查询
         IPage<Announcement> result = baseMapper.selectPage(pageParam, queryWrapper);
 
+        System.out.println("查询结果总数: " + result.getTotal());
+        System.out.println("查询结果记录数: " + (result.getRecords() != null ? result.getRecords().size() : 0));
+
         // 手动填充admin_name
         if (result.getRecords() != null && !result.getRecords().isEmpty()) {
+            System.out.println("开始填充adminName，记录数: " + result.getRecords().size());
+
             // 收集所有adminId
             List<String> adminIds = result.getRecords().stream()
                     .map(Announcement::getAdminId)
@@ -46,9 +56,13 @@ public class AnnouncementServiceImpl extends ServiceImpl<AnnouncementMapper, Ann
                     .distinct()
                     .collect(Collectors.toList());
 
+            System.out.println("需要查询的adminId数量: " + adminIds.size());
+
             // 批量查询用户信息
             if (!adminIds.isEmpty()) {
                 List<User> users = userMapper.selectBatchIds(adminIds);
+                System.out.println("查询到的用户数量: " + users.size());
+
                 Map<String, String> adminNameMap = users.stream()
                         .collect(Collectors.toMap(
                                 User::getUserId,
@@ -64,6 +78,8 @@ public class AnnouncementServiceImpl extends ServiceImpl<AnnouncementMapper, Ann
                     }
                 });
             }
+        } else {
+            System.out.println("查询结果为空，records为null或empty");
         }
 
         return result;
