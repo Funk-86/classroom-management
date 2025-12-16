@@ -4,21 +4,69 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.example.classroom.entity.Announcement;
+import org.example.classroom.entity.User;
 import org.example.classroom.mapper.AnnouncementMapper;
+import org.example.classroom.mapper.UserMapper;
 import org.example.classroom.service.AnnouncementService;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class AnnouncementServiceImpl extends ServiceImpl<AnnouncementMapper, Announcement>
         implements AnnouncementService {
 
+    @Autowired
+    private UserMapper userMapper;
+
     @Override
     public IPage<Announcement> getActiveAnnouncements(Integer page, Integer size) {
         Page<Announcement> pageParam = new Page<>(page, size);
-        return baseMapper.selectActiveAnnouncements(pageParam);
+
+        // 使用QueryWrapper进行查询，确保分页正确
+        QueryWrapper<Announcement> queryWrapper = new QueryWrapper<>();
+        queryWrapper.le("start_time", LocalDateTime.now())
+                .ge("end_time", LocalDateTime.now())
+                .orderByDesc("priority")
+                .orderByDesc("created_at");
+
+        // 使用selectPage进行分页查询
+        IPage<Announcement> result = baseMapper.selectPage(pageParam, queryWrapper);
+
+        // 手动填充admin_name
+        if (result.getRecords() != null && !result.getRecords().isEmpty()) {
+            // 收集所有adminId
+            List<String> adminIds = result.getRecords().stream()
+                    .map(Announcement::getAdminId)
+                    .filter(id -> id != null && !id.isEmpty())
+                    .distinct()
+                    .collect(Collectors.toList());
+
+            // 批量查询用户信息
+            if (!adminIds.isEmpty()) {
+                List<User> users = userMapper.selectBatchIds(adminIds);
+                Map<String, String> adminNameMap = users.stream()
+                        .collect(Collectors.toMap(
+                                User::getUserId,
+                                User::getUserName,
+                                (v1, v2) -> v1
+                        ));
+
+                // 填充adminName
+                result.getRecords().forEach(announcement -> {
+                    if (announcement.getAdminId() != null) {
+                        String adminName = adminNameMap.get(announcement.getAdminId());
+                        announcement.setAdminName(adminName != null ? adminName : "未知");
+                    }
+                });
+            }
+        }
+
+        return result;
     }
 
     @Override
