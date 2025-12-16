@@ -12,6 +12,8 @@ import org.example.classroom.mapper.AnnouncementMapper;
 import org.example.classroom.mapper.UserMapper;
 import org.example.classroom.service.AnnouncementService;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -46,8 +48,10 @@ public class AnnouncementServiceImpl extends ServiceImpl<AnnouncementMapper, Ann
         }
 
         // 2. 使用Java代码过滤有效公告（避免SQL时间比较问题）
-        LocalDateTime now = LocalDateTime.now();
-        System.out.println("当前时间: " + now);
+        // 使用东八区时间，确保时间正确
+        ZoneId shanghaiZone = ZoneId.of("Asia/Shanghai");
+        LocalDateTime now = ZonedDateTime.now(shanghaiZone).toLocalDateTime();
+        System.out.println("当前时间（东八区）: " + now);
 
         List<Announcement> allAnnouncements = allAnnouncementsInDb != null
                 ? allAnnouncementsInDb.stream()
