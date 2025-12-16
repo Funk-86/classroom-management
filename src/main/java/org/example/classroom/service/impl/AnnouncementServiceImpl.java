@@ -29,12 +29,17 @@ public class AnnouncementServiceImpl extends ServiceImpl<AnnouncementMapper, Ann
         System.out.println("页码: " + page + ", 每页大小: " + size);
 
         // 由于MyBatis-Plus分页插件在处理带JOIN的@Select时有问题，直接手动查询和分页
-        // 1. 查询总数
-        QueryWrapper<Announcement> countWrapper = new QueryWrapper<>();
-        countWrapper.apply("start_time <= NOW()")
-                .apply("end_time >= NOW()");
-        long total = baseMapper.selectCount(countWrapper);
-        System.out.println("查询总数: " + total);
+        // 1. 先查询所有数据，然后获取总数和分页
+        QueryWrapper<Announcement> listWrapper = new QueryWrapper<>();
+        listWrapper.apply("start_time <= NOW()")
+                .apply("end_time >= NOW()")
+                .orderByDesc("priority")
+                .orderByDesc("created_at");
+
+        System.out.println("开始查询所有公告...");
+        List<Announcement> allAnnouncements = baseMapper.selectList(listWrapper);
+        long total = allAnnouncements != null ? allAnnouncements.size() : 0;
+        System.out.println("查询到所有公告数量: " + total);
 
         // 2. 创建分页结果对象
         Page<Announcement> result = new Page<>(page, size);
@@ -47,25 +52,7 @@ public class AnnouncementServiceImpl extends ServiceImpl<AnnouncementMapper, Ann
             return result;
         }
 
-        // 4. 查询所有符合条件的公告（使用自定义SQL查询，包含JOIN和admin_name）
-        // 由于selectActiveAnnouncements方法有分页问题，我们直接查询所有数据
-        System.out.println("开始查询公告列表...");
-
-        // 使用自定义SQL查询所有数据（不限制数量）
-        // 注意：这里需要创建一个不限制数量的查询方法，或者直接使用selectList
-        // 但selectList不支持JOIN，所以我们需要手动查询然后填充admin_name
-
-        // 先查询公告数据
-        QueryWrapper<Announcement> listWrapper = new QueryWrapper<>();
-        listWrapper.apply("start_time <= NOW()")
-                .apply("end_time >= NOW()")
-                .orderByDesc("priority")
-                .orderByDesc("created_at");
-        List<Announcement> allAnnouncements = baseMapper.selectList(listWrapper);
-
-        System.out.println("查询到所有公告数量: " + (allAnnouncements != null ? allAnnouncements.size() : 0));
-
-        // 5. 手动填充admin_name
+        // 4. 手动填充admin_name（因为selectList不支持JOIN）
         if (allAnnouncements != null && !allAnnouncements.isEmpty()) {
             List<String> adminIds = allAnnouncements.stream()
                     .map(Announcement::getAdminId)
