@@ -25,61 +25,45 @@ public class AnnouncementServiceImpl extends ServiceImpl<AnnouncementMapper, Ann
 
     @Override
     public IPage<Announcement> getActiveAnnouncements(Integer page, Integer size) {
-        Page<Announcement> pageParam = new Page<>(page, size);
-
         System.out.println("=== 查询有效公告 ===");
         System.out.println("页码: " + page + ", 每页大小: " + size);
 
-        // 使用QueryWrapper进行查询，使用SQL函数NOW()避免时区问题
-        QueryWrapper<Announcement> queryWrapper = new QueryWrapper<>();
-        queryWrapper.apply("start_time <= NOW()")
-                .apply("end_time >= NOW()")
-                .orderByDesc("priority")
-                .orderByDesc("created_at");
+        // 手动查询总数（只查询主表，避免JOIN影响COUNT）
+        QueryWrapper<Announcement> countWrapper = new QueryWrapper<>();
+        countWrapper.apply("start_time <= NOW()")
+                .apply("end_time >= NOW()");
+        long total = baseMapper.selectCount(countWrapper);
 
-        System.out.println("查询条件: start_time <= NOW() AND end_time >= NOW()");
+        System.out.println("查询总数: " + total);
 
-        // 使用selectPage进行分页查询
-        IPage<Announcement> result = baseMapper.selectPage(pageParam, queryWrapper);
+        // 如果总数为0，直接返回空结果
+        if (total == 0) {
+            Page<Announcement> emptyPage = new Page<>(page, size);
+            emptyPage.setTotal(0);
+            emptyPage.setRecords(java.util.Collections.emptyList());
+            return emptyPage;
+        }
+
+        // 使用自定义方法查询列表（包含JOIN和admin_name）
+        Page<Announcement> pageParam = new Page<>(page, size);
+        IPage<Announcement> result = baseMapper.selectActiveAnnouncements(pageParam);
+
+        // 手动设置总数（因为COUNT查询可能不准确）
+        result.setTotal(total);
 
         System.out.println("查询结果总数: " + result.getTotal());
         System.out.println("查询结果记录数: " + (result.getRecords() != null ? result.getRecords().size() : 0));
 
-        // 手动填充admin_name
+        // admin_name已经在SQL中通过JOIN查询填充
         if (result.getRecords() != null && !result.getRecords().isEmpty()) {
-            System.out.println("开始填充adminName，记录数: " + result.getRecords().size());
-
-            // 收集所有adminId
-            List<String> adminIds = result.getRecords().stream()
-                    .map(Announcement::getAdminId)
-                    .filter(id -> id != null && !id.isEmpty())
-                    .distinct()
-                    .collect(Collectors.toList());
-
-            System.out.println("需要查询的adminId数量: " + adminIds.size());
-
-            // 批量查询用户信息
-            if (!adminIds.isEmpty()) {
-                List<User> users = userMapper.selectBatchIds(adminIds);
-                System.out.println("查询到的用户数量: " + users.size());
-
-                Map<String, String> adminNameMap = users.stream()
-                        .collect(Collectors.toMap(
-                                User::getUserId,
-                                User::getUserName,
-                                (v1, v2) -> v1
-                        ));
-
-                // 填充adminName
-                result.getRecords().forEach(announcement -> {
-                    if (announcement.getAdminId() != null) {
-                        String adminName = adminNameMap.get(announcement.getAdminId());
-                        announcement.setAdminName(adminName != null ? adminName : "未知");
-                    }
-                });
-            }
+            System.out.println("查询成功，记录数: " + result.getRecords().size());
+            result.getRecords().forEach(announcement -> {
+                System.out.println("公告ID: " + announcement.getAnnouncementId() +
+                        ", 标题: " + announcement.getTitle() +
+                        ", 管理员: " + announcement.getAdminName());
+            });
         } else {
-            System.out.println("查询结果为空，records为null或empty");
+            System.out.println("查询结果为空，但总数不为0，可能存在分页问题");
         }
 
         return result;
