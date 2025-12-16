@@ -52,4 +52,14 @@ public interface UserMapper extends BaseMapper<User> {
     @Select("SELECT * FROM users WHERE class_id = #{classId} AND user_role = #{role} ORDER BY created_at DESC")
     List<User> selectUsersByClassAndRole(@Param("classId") String classId, @Param("role") Integer role);
 
+    // 查询用户详情（包含班级名称和学院名称）
+    @Select("SELECT u.user_id, u.openid, u.user_name, u.user_phone, u.user_role, u.user_avatar, " +
+            "u.password, u.college_id, u.class_id, u.created_at, u.updated_at, " +
+            "c.class_name AS className, col.college_name AS collegeName " +
+            "FROM users u " +
+            "LEFT JOIN classes c ON u.class_id = c.class_id " +
+            "LEFT JOIN colleges col ON u.college_id = col.college_id " +
+            "WHERE u.user_id = #{userId}")
+    User selectUserWithDetail(@Param("userId") String userId);
+
 }

@@ -310,6 +310,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return getById(userId);
     }
 
+    @Override
+    public User getUserWithDetail(String userId) {
+        if (!StringUtils.hasText(userId)) {
+            return null;
+        }
+        return baseMapper.selectUserWithDetail(userId);
+    }
+
     // 新增：学院相关查询方法
     @Override
     public List<User> getUsersByCollege(String collegeId) {

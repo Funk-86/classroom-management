@@ -32,7 +32,7 @@ public class UserController {
     public R getCurrentUser(@RequestHeader(value = "Authorization", required = false) String token) {
         try {
             String userId = tokenUtils.extractUserIdFromToken(token);
-            User user = userService.getById(userId);
+            User user = userService.getUserWithDetail(userId);
 
             if (user != null) {
                 UserResponse response = new UserResponse(user);

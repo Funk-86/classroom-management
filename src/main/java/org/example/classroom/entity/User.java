@@ -17,6 +17,13 @@ public class User {
     private String collegeId;
     private String classId; // 新增班级ID字段
 
+    // 关联字段
+    @TableField(exist = false)
+    private String className; // 班级名称
+
+    @TableField(exist = false)
+    private String collegeName; // 学院名称
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 
@@ -98,6 +105,22 @@ public class User {
 
     public void setClassId(String classId) {
         this.classId = classId;
+    }
+
+    public String getClassName() {
+        return className;
+    }
+
+    public void setClassName(String className) {
+        this.className = className;
+    }
+
+    public String getCollegeName() {
+        return collegeName;
+    }
+
+    public void setCollegeName(String collegeName) {
+        this.collegeName = collegeName;
     }
 
     public LocalDateTime getCreatedAt() {

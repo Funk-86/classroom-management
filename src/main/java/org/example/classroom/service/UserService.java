@@ -26,6 +26,7 @@ public interface UserService extends IService<User> {
     long getSearchCount(String keyword);
     boolean changePassword(String userId, String newPassword);
     User getUserDetail(String userId);
+    User getUserWithDetail(String userId); // 获取用户详情（包含班级和学院名称）
 
     // 新增：学院相关查询
     List<User> getUsersByCollege(String collegeId);
@@ -34,7 +35,7 @@ public interface UserService extends IService<User> {
 
     List<User> getUsersByClass(String classId);
     List<User> getUsersByClassAndRole(String classId, Integer role);
-    
+
     // Session管理方法
     int getActiveSessionCount();
     boolean forceLogoutUser(String userId);

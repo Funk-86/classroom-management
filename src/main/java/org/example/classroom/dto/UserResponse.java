@@ -16,6 +16,7 @@ public class UserResponse {
     private String collegeId; // 新增学院ID
     private String collegeName; // 新增学院名称
     private String classId; // 新增班级ID
+    private String className; // 新增班级名称
 
     // 构造函数
     public UserResponse() {}
@@ -31,7 +32,8 @@ public class UserResponse {
         this.updatedAt = user.getUpdatedAt();
         this.collegeId = user.getCollegeId();
         this.classId = user.getClassId();
-        //this.collegeName=user.getCollegeName();
+        this.collegeName = user.getCollegeName();
+        this.className = user.getClassName();
     }
 
     // Getter和Setter
@@ -70,6 +72,9 @@ public class UserResponse {
 
     public String getClassId() { return classId; }
     public void setClassId(String classId) { this.classId = classId; }
+
+    public String getClassName() { return className; }
+    public void setClassName(String className) { this.className = className; }
 
     // 角色名称转换
     private String getRoleName(Integer role) {
