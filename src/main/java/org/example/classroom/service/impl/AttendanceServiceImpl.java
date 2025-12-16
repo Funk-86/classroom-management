@@ -126,9 +126,27 @@ public class AttendanceServiceImpl extends ServiceImpl<AttendanceSessionMapper, 
 
         System.out.println("当前时间（东八区）: " + now);
 
-        // 过滤出当前时间在签到时间范围内的活动
+        // 获取学生已签到的活动ID列表
+        List<String> checkedInSessionIds = recordMapper.selectList(
+                        new QueryWrapper<AttendanceRecord>()
+                                .eq("student_id", studentId)
+                                .select("session_id")
+                ).stream()
+                .map(AttendanceRecord::getSessionId)
+                .distinct()
+                .collect(java.util.stream.Collectors.toList());
+
+        System.out.println("学生已签到的活动ID: " + checkedInSessionIds);
+
+        // 过滤出当前时间在签到时间范围内且未签到的活动
         List<AttendanceSession> activeSessions = allActiveSessions.stream()
                 .filter(session -> {
+                    // 检查是否已签到
+                    if (checkedInSessionIds.contains(session.getSessionId())) {
+                        System.out.println("签到活动 " + session.getSessionId() + " 已签到，跳过");
+                        return false;
+                    }
+
                     if (session.getStartTime() == null || session.getEndTime() == null) {
                         System.out.println("签到活动 " + session.getSessionId() + " 的时间为空");
                         return false;
@@ -148,7 +166,7 @@ public class AttendanceServiceImpl extends ServiceImpl<AttendanceSessionMapper, 
                 })
                 .collect(java.util.stream.Collectors.toList());
 
-        System.out.println("过滤后找到 " + activeSessions.size() + " 个当前时间范围内的签到活动");
+        System.out.println("过滤后找到 " + activeSessions.size() + " 个未签到的当前时间范围内的签到活动");
 
         return activeSessions;
     }
