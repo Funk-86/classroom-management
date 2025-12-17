@@ -83,8 +83,20 @@ public interface CourseService extends IService<Course> {
     // 检查学生是否可以选择某课程
     boolean canStudentEnrollCourse(String studentId, String courseId);
 
-    // 新增：分配课程给班级
+    // 新增：分配课程给班级（支持多班级）
     boolean assignCourseToClass(String courseId, String classId, String assignerId);
+
+    // 新增：批量分配课程给多个班级
+    boolean batchAssignCourseToClasses(String courseId, List<String> classIds, String assignerId);
+
+    // 新增：移除课程的班级关联
+    boolean removeCourseFromClass(String courseId, String classId);
+
+    // 新增：获取课程的所有关联班级
+    List<org.example.classroom.entity.CourseClass> getCourseClasses(String courseId);
+
+    // 新增：获取班级的所有关联课程
+    List<org.example.classroom.entity.CourseClass> getClassCourses(String classId);
 
     // 新增：根据周次获取学生课表
     List<CourseSchedule> getStudentTimetableByWeek(String studentId, int weekNumber);

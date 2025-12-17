@@ -14,6 +14,7 @@ public class AttendanceSession {
     private String sessionId;
 
     private String courseId;
+    private String classId; // 签到班级ID（教师选择）
     private String courseScheduleId;
     private String teacherId;
     private String classroomId;

@@ -13,11 +13,12 @@ import java.util.List;
 public interface AttendanceSessionMapper extends BaseMapper<AttendanceSession> {
 
     @Select("SELECT s.*, c.course_name, u.user_name as teacher_name, " +
-            "cl.classroom_name " +
+            "cl.classroom_name, cls.class_name " +
             "FROM attendance_sessions s " +
             "LEFT JOIN courses c ON s.course_id = c.course_id " +
             "LEFT JOIN users u ON s.teacher_id = u.user_id " +
             "LEFT JOIN classrooms cl ON s.classroom_id = cl.classroom_id " +
+            "LEFT JOIN classes cls ON s.class_id = cls.class_id " +
             "WHERE s.session_id = #{sessionId}")
     AttendanceSession selectSessionWithDetail(@Param("sessionId") String sessionId);
 
@@ -58,20 +59,23 @@ public interface AttendanceSessionMapper extends BaseMapper<AttendanceSession> {
     List<AttendanceSession> selectCourseSessions(@Param("courseId") String courseId);
 
     // 查询学生的签到活动（不限制时间，在Java代码中判断）
+    // 支持多班级：如果签到活动指定了班级，则只显示该班级的学生；如果未指定，则显示所有选课学生
     @Select("SELECT DISTINCT s.*, c.course_name, u.user_name as teacher_name, " +
-            "cl.classroom_name " +
+            "cl.classroom_name, cls.class_name " +
             "FROM attendance_sessions s " +
             "LEFT JOIN courses c ON s.course_id = c.course_id " +
             "LEFT JOIN users u ON s.teacher_id = u.user_id " +
             "LEFT JOIN classrooms cl ON s.classroom_id = cl.classroom_id " +
+            "LEFT JOIN classes cls ON s.class_id = cls.class_id " +
             "WHERE s.status = 1 " +
             "AND s.course_id IN (" +
             "  SELECT DISTINCT course_id FROM student_courses WHERE student_id = #{studentId} AND enrollment_status = 1 " +
             "  UNION " +
-            "  SELECT DISTINCT course_id FROM courses co " +
-            "  INNER JOIN users st ON co.class_id = st.class_id " +
+            "  SELECT DISTINCT cc.course_id FROM course_classes cc " +
+            "  INNER JOIN users st ON cc.class_id = st.class_id " +
             "  WHERE st.user_id = #{studentId} AND st.user_role = 0" +
             ") " +
+            "AND (s.class_id IS NULL OR s.class_id = (SELECT class_id FROM users WHERE user_id = #{studentId})) " +
             "ORDER BY s.start_time DESC")
     List<AttendanceSession> selectActiveSessionsForStudentWithoutTimeCheck(@Param("studentId") String studentId);
 

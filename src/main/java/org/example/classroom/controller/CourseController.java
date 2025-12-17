@@ -313,21 +313,6 @@ public class CourseController {
         }
     }
 
-    // 批量分配课程给班级
-    @PostMapping("/assign/class")
-    public R assignCourseToClass(@RequestParam String courseId,
-                                 @RequestParam String classId) {
-        try {
-            boolean success = courseService.assignCourseToClass(courseId, classId, getCurrentUserId());
-            if (success) {
-                return R.ok("分配课程给班级成功");
-            } else {
-                return R.error("分配课程给班级失败");
-            }
-        } catch (Exception e) {
-            return R.error("分配课程给班级失败: " + e.getMessage());
-        }
-    }
 
     // 删除课程安排
     @DeleteMapping("/schedule/delete/{scheduleId}")
@@ -537,6 +522,74 @@ public class CourseController {
 
         public Integer getIsRequired() { return isRequired; }
         public void setIsRequired(Integer isRequired) { this.isRequired = isRequired; }
+    }
+
+    // 分配课程给班级（支持多班级）
+    @PostMapping("/assign/class")
+    public R assignCourseToClass(@RequestParam String courseId,
+                                 @RequestParam String classId) {
+        try {
+            boolean success = courseService.assignCourseToClass(courseId, classId, getCurrentUserId());
+            if (success) {
+                return R.ok("分配课程到班级成功");
+            } else {
+                return R.error("分配课程到班级失败");
+            }
+        } catch (Exception e) {
+            return R.error("分配课程到班级失败: " + e.getMessage());
+        }
+    }
+
+    // 批量分配课程给多个班级
+    @PostMapping("/assign/classes")
+    public R batchAssignCourseToClasses(@RequestParam String courseId,
+                                        @RequestBody List<String> classIds) {
+        try {
+            boolean success = courseService.batchAssignCourseToClasses(courseId, classIds, getCurrentUserId());
+            if (success) {
+                return R.ok("批量分配课程到班级成功");
+            } else {
+                return R.error("批量分配课程到班级失败");
+            }
+        } catch (Exception e) {
+            return R.error("批量分配课程到班级失败: " + e.getMessage());
+        }
+    }
+
+    // 移除课程的班级关联
+    @DeleteMapping("/remove/class")
+    public R removeCourseFromClass(@RequestParam String courseId,
+                                   @RequestParam String classId) {
+        try {
+            boolean success = courseService.removeCourseFromClass(courseId, classId);
+            if (success) {
+                return R.ok("移除课程班级关联成功");
+            } else {
+                return R.error("移除课程班级关联失败");
+            }
+        } catch (Exception e) {
+            return R.error("移除课程班级关联失败: " + e.getMessage());
+        }
+    }
+
+    // 获取课程的所有关联班级
+    @GetMapping("/{courseId}/classes")
+    public R getCourseClasses(@PathVariable String courseId) {
+        try {
+            return R.ok().put("data", courseService.getCourseClasses(courseId));
+        } catch (Exception e) {
+            return R.error("获取课程班级列表失败: " + e.getMessage());
+        }
+    }
+
+    // 获取班级的所有关联课程
+    @GetMapping("/class/{classId}/courses")
+    public R getClassCourses(@PathVariable String classId) {
+        try {
+            return R.ok().put("data", courseService.getClassCourses(classId));
+        } catch (Exception e) {
+            return R.error("获取班级课程列表失败: " + e.getMessage());
+        }
     }
 
     private String getCurrentUserId() {

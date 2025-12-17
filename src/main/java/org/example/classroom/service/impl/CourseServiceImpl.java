@@ -13,6 +13,8 @@ import org.example.classroom.mapper.CourseMapper;
 import org.example.classroom.mapper.CourseScheduleMapper;
 import org.example.classroom.mapper.StudentCourseMapper;
 import org.example.classroom.mapper.UserMapper;
+import org.example.classroom.mapper.CourseClassMapper;
+import org.example.classroom.entity.CourseClass;
 import org.example.classroom.service.CourseService;
 import org.example.classroom.util.WeekCalculator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +45,9 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
 
     @Autowired
     private StudentCourseMapper studentCourseMapper;
+
+    @Autowired
+    private CourseClassMapper courseClassMapper;
 
     @Override
     public IPage<Course> getCoursesWithDetail(String collegeId, String academicYear, Integer semester,
@@ -492,13 +497,58 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
             throw new RuntimeException("课程不存在");
         }
 
-        // 更新课程的班级信息
-        course.setClassId(classId);
-        course.setIsRequired(1); // 班级课程为必修
-        course.setAssignedBy(assignerId);
-        course.setAssignedAt(LocalDateTime.now());
+        // 检查关联是否已存在
+        if (courseClassMapper.checkExists(courseId, classId) > 0) {
+            throw new RuntimeException("该课程已分配给该班级");
+        }
 
-        return updateById(course);
+        // 创建课程-班级关联
+        CourseClass courseClass = new CourseClass();
+        courseClass.setCourseId(courseId);
+        courseClass.setClassId(classId);
+        courseClass.setCreatedAt(LocalDateTime.now());
+        courseClass.setUpdatedAt(LocalDateTime.now());
+
+        return courseClassMapper.insert(courseClass) > 0;
+    }
+
+    @Override
+    @Transactional
+    public boolean batchAssignCourseToClasses(String courseId, List<String> classIds, String assignerId) {
+        if (classIds == null || classIds.isEmpty()) {
+            return false;
+        }
+
+        int successCount = 0;
+        for (String classId : classIds) {
+            try {
+                if (assignCourseToClass(courseId, classId, assignerId)) {
+                    successCount++;
+                }
+            } catch (Exception e) {
+                // 记录错误但继续处理其他班级
+                System.err.println("分配课程到班级失败: " + e.getMessage());
+            }
+        }
+        return successCount > 0;
+    }
+
+    @Override
+    @Transactional
+    public boolean removeCourseFromClass(String courseId, String classId) {
+        QueryWrapper<CourseClass> wrapper = new QueryWrapper<>();
+        wrapper.eq("course_id", courseId).eq("class_id", classId);
+        return courseClassMapper.delete(wrapper) > 0;
+    }
+
+    @Override
+    public List<CourseClass> getCourseClasses(String courseId) {
+        return courseClassMapper.selectByCourseId(courseId);
+    }
+
+    @Override
+    public List<CourseClass> getClassCourses(String classId) {
+        return courseClassMapper.selectByClassId(classId);
     }
 
     @Override

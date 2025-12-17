@@ -25,6 +25,9 @@ public class AttendanceController {
     @Autowired
     private CurrentUserUtil currentUserUtil;
 
+    @Autowired
+    private org.example.classroom.service.CourseService courseService;
+
     // 获取当前用户ID的辅助方法
     private String getCurrentUserId() {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
@@ -150,6 +153,16 @@ public class AttendanceController {
             return R.ok().put("data", records);
         } catch (Exception e) {
             return R.error("获取签到记录失败: " + e.getMessage());
+        }
+    }
+
+    // 获取课程的关联班级列表（用于签到选择）
+    @GetMapping("/course/{courseId}/classes")
+    public R getCourseClasses(@PathVariable String courseId) {
+        try {
+            return R.ok().put("data", courseService.getCourseClasses(courseId));
+        } catch (Exception e) {
+            return R.error("获取课程班级列表失败: " + e.getMessage());
         }
     }
 
