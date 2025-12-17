@@ -113,11 +113,21 @@ public class ClassroomController {
             return R.error("教学楼ID不能为空");
         }
 
-        boolean success = classroomService.addClassroom(classroom);
-        if (success) {
-            return R.ok("添加成功");
-        } else {
-            return R.error("添加失败");
+        // 检查教室ID是否已存在
+        Classroom existingClassroom = classroomService.getClassroomById(classroom.getClassroomId());
+        if (existingClassroom != null) {
+            return R.error("教室编号 " + classroom.getClassroomId() + " 已存在，请使用其他编号");
+        }
+
+        try {
+            boolean success = classroomService.addClassroom(classroom);
+            if (success) {
+                return R.ok("添加成功");
+            } else {
+                return R.error("添加失败");
+            }
+        } catch (org.springframework.dao.DuplicateKeyException e) {
+            return R.error("教室编号 " + classroom.getClassroomId() + " 已存在，请使用其他编号");
         }
     }
 

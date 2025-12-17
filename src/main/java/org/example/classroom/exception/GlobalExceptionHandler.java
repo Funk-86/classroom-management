@@ -3,6 +3,7 @@ package org.example.classroom.exception;
 import org.example.classroom.dto.R;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
@@ -39,7 +40,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public R handleValidationException(Exception e) {
         Map<String, String> errors = new HashMap<>();
-        
+
         if (e instanceof MethodArgumentNotValidException) {
             MethodArgumentNotValidException ex = (MethodArgumentNotValidException) e;
             ex.getBindingResult().getAllErrors().forEach(error -> {
@@ -55,7 +56,7 @@ public class GlobalExceptionHandler {
                 errors.put(fieldName, errorMessage);
             });
         }
-        
+
         log.warn("参数验证失败: {}", errors);
         return R.error(400, "参数验证失败").put("errors", errors);
     }
@@ -68,6 +69,52 @@ public class GlobalExceptionHandler {
     public R handleIllegalArgumentException(IllegalArgumentException e) {
         log.warn("非法参数: {}", e.getMessage());
         return R.error(400, e.getMessage());
+    }
+
+    /**
+     * 处理数据库主键重复异常
+     */
+    @ExceptionHandler(DuplicateKeyException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public R handleDuplicateKeyException(DuplicateKeyException e) {
+        log.warn("主键重复异常: {}", e.getMessage());
+        String message = e.getMessage();
+
+        // 尝试从异常信息中提取更友好的错误提示
+        if (message != null) {
+            if (message.contains("classrooms.PRIMARY") || message.contains("classroom_id")) {
+                // 提取教室编号
+                String classroomId = extractIdFromMessage(message);
+                if (classroomId != null) {
+                    return R.error(400, "教室编号 " + classroomId + " 已存在，请使用其他编号");
+                }
+                return R.error(400, "教室编号已存在，请使用其他编号");
+            } else if (message.contains("buildings.PRIMARY") || message.contains("building_id")) {
+                String buildingId = extractIdFromMessage(message);
+                if (buildingId != null) {
+                    return R.error(400, "教学楼编号 " + buildingId + " 已存在，请使用其他编号");
+                }
+                return R.error(400, "教学楼编号已存在，请使用其他编号");
+            }
+        }
+
+        return R.error(400, "数据已存在，请检查输入信息");
+    }
+
+    /**
+     * 从异常消息中提取ID
+     */
+    private String extractIdFromMessage(String message) {
+        if (message == null) {
+            return null;
+        }
+        // 尝试匹配 "Duplicate entry 'xxx' for key"
+        int start = message.indexOf("'");
+        int end = message.indexOf("'", start + 1);
+        if (start >= 0 && end > start) {
+            return message.substring(start + 1, end);
+        }
+        return null;
     }
 
     /**
