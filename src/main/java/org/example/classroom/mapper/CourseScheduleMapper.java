@@ -102,7 +102,9 @@ public interface CourseScheduleMapper extends BaseMapper<CourseSchedule> {
     );
 
     @Select("<script>" +
-            "SELECT DISTINCT cs.*, " +
+            "SELECT DISTINCT cs.schedule_id, cs.course_id, cs.classroom_id, cs.campus_id, " +
+            "cs.day_of_week, cs.start_time, cs.end_time, cs.schedule_date, " +
+            "cs.schedule_type, cs.start_week, cs.end_week, cs.created_at, cs.updated_at, " +
             "c.course_name AS courseName, " +
             "c.course_code AS courseCode, " +
             "c.course_type AS courseType, " +
