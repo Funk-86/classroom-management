@@ -215,6 +215,28 @@ public class ClassroomOccupationServiceImpl implements ClassroomOccupationServic
             conflicts.removeIf(schedule -> schedule.getScheduleId().equals(excludeScheduleId));
         }
 
+        // 过滤掉同一课程、同一教师的冲突（同一教师教多个班级不算冲突）
+        // 如果冲突列表中有多个课程安排，且它们都是同一课程、同一教师，则不算冲突
+        if (conflicts.size() > 1) {
+            // 按课程ID和教师ID分组
+            java.util.Map<String, java.util.List<CourseSchedule>> courseTeacherGroups = new java.util.HashMap<>();
+            for (CourseSchedule schedule : conflicts) {
+                if (schedule.getCourseId() != null && schedule.getTeacherId() != null) {
+                    String key = schedule.getCourseId() + "_" + schedule.getTeacherId();
+                    courseTeacherGroups.computeIfAbsent(key, k -> new java.util.ArrayList<>()).add(schedule);
+                }
+            }
+
+            // 如果某个组有多个课程安排（同一课程、同一教师），则从冲突列表中移除
+            final List<CourseSchedule> finalConflicts = conflicts; // 创建final引用
+            courseTeacherGroups.forEach((key, groupSchedules) -> {
+                if (groupSchedules.size() > 1) {
+                    // 同一课程、同一教师的多个安排不算冲突，移除它们
+                    finalConflicts.removeAll(groupSchedules);
+                }
+            });
+        }
+
         return convertSchedulesToOccupationInfo(conflicts, date);
     }
 
