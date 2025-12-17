@@ -44,13 +44,88 @@ public class AttendanceController {
 
     // 教师发起签到
     @PostMapping("/session/create")
-    public R createSession(@RequestBody AttendanceSession session) {
+    public R createSession(@RequestBody Map<String, Object> requestData) {
         try {
             String teacherId = getCurrentUserId();
+
+            // 检查是否有多个班级ID
+            Object classIdsObj = requestData.get("classIds");
+            List<String> classIds = null;
+            if (classIdsObj instanceof List) {
+                classIds = (List<String>) classIdsObj;
+            }
+
+            // 转换为AttendanceSession对象
+            AttendanceSession session = new AttendanceSession();
+            session.setCourseId((String) requestData.get("courseId"));
+            session.setSessionTitle((String) requestData.get("sessionTitle"));
+
+            Object latObj = requestData.get("latitude");
+            Object lonObj = requestData.get("longitude");
+            if (latObj != null) {
+                session.setLatitude(new java.math.BigDecimal(latObj.toString()));
+            }
+            if (lonObj != null) {
+                session.setLongitude(new java.math.BigDecimal(lonObj.toString()));
+            }
+
+            Object radiusObj = requestData.get("radius");
+            if (radiusObj != null) {
+                session.setRadius(radiusObj instanceof Integer ? (Integer) radiusObj : Integer.parseInt(radiusObj.toString()));
+            }
+
+            // 解析时间
+            String startTimeStr = (String) requestData.get("startTime");
+            String endTimeStr = (String) requestData.get("endTime");
+            if (startTimeStr != null) {
+                try {
+                    session.setStartTime(java.time.LocalDateTime.parse(startTimeStr,
+                            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                } catch (Exception e) {
+                    // 尝试其他格式
+                    session.setStartTime(java.time.LocalDateTime.parse(startTimeStr));
+                }
+            }
+            if (endTimeStr != null) {
+                try {
+                    session.setEndTime(java.time.LocalDateTime.parse(endTimeStr,
+                            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                } catch (Exception e) {
+                    // 尝试其他格式
+                    session.setEndTime(java.time.LocalDateTime.parse(endTimeStr));
+                }
+            }
+
             session.setTeacherId(teacherId);
 
-            AttendanceSession created = attendanceService.createSession(session);
-            return R.ok().put("data", created);
+            // 如果有多个班级ID，为每个班级创建一个签到活动
+            if (classIds != null && classIds.size() > 1) {
+                List<AttendanceSession> createdSessions = new java.util.ArrayList<>();
+                for (String classId : classIds) {
+                    AttendanceSession sessionCopy = new AttendanceSession();
+                    sessionCopy.setCourseId(session.getCourseId());
+                    sessionCopy.setClassId(classId);
+                    sessionCopy.setSessionTitle(session.getSessionTitle());
+                    sessionCopy.setLatitude(session.getLatitude());
+                    sessionCopy.setLongitude(session.getLongitude());
+                    sessionCopy.setRadius(session.getRadius());
+                    sessionCopy.setStartTime(session.getStartTime());
+                    sessionCopy.setEndTime(session.getEndTime());
+                    sessionCopy.setTeacherId(teacherId);
+
+                    AttendanceSession created = attendanceService.createSession(sessionCopy);
+                    createdSessions.add(created);
+                }
+                return R.ok().put("data", createdSessions).put("count", createdSessions.size());
+            } else {
+                // 单个班级或全部班级
+                String classId = classIds != null && classIds.size() == 1 ? classIds.get(0) :
+                        (String) requestData.get("classId");
+                session.setClassId(classId);
+
+                AttendanceSession created = attendanceService.createSession(session);
+                return R.ok().put("data", created);
+            }
         } catch (Exception e) {
             e.printStackTrace(); // 打印详细错误信息
             return R.error("发起签到失败: " + e.getMessage());
