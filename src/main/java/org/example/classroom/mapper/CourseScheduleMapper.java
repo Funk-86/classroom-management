@@ -102,11 +102,12 @@ public interface CourseScheduleMapper extends BaseMapper<CourseSchedule> {
     );
 
     @Select("<script>" +
-            "SELECT cs.*, " +
+            "SELECT DISTINCT cs.*, " +
             "c.course_name AS courseName, " +
             "c.course_code AS courseCode, " +
             "c.course_type AS courseType, " +
             "c.credit_hours AS creditHours, " +
+            "c.teacher_id AS teacherId, " +
             "cl.classroom_name AS classroomName, " +
             "b.building_name AS buildingName, " +
             "camp.campus_name AS campusName, " +
@@ -119,7 +120,12 @@ public interface CourseScheduleMapper extends BaseMapper<CourseSchedule> {
             "LEFT JOIN users u ON c.teacher_id = u.user_id " +
             "WHERE 1=1 " +
             "<if test='classId != null and classId != \"\"'> " +
-            "AND c.class_id = #{classId} " +
+            "AND ( " +
+            "  c.class_id = #{classId} " +
+            "  OR cs.course_id IN ( " +
+            "    SELECT course_id FROM course_classes WHERE class_id = #{classId} " +
+            "  ) " +
+            ") " +
             "</if>" +
             "<if test='weekNumber != null'> " +
             "AND ((cs.schedule_type = 0 AND #{weekNumber} BETWEEN cs.start_week AND cs.end_week) " +
