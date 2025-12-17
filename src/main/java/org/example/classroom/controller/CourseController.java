@@ -256,6 +256,21 @@ public class CourseController {
         }
     }
 
+    // 获取课程安排详情
+    @GetMapping("/schedule/{scheduleId}")
+    public R getScheduleDetail(@PathVariable String scheduleId) {
+        try {
+            CourseSchedule schedule = courseService.getScheduleWithDetail(scheduleId);
+            if (schedule != null) {
+                return R.ok().put("data", schedule);
+            } else {
+                return R.error("课程安排不存在");
+            }
+        } catch (Exception e) {
+            return R.error("获取课程安排详情失败: " + e.getMessage());
+        }
+    }
+
     // 添加课程安排
     @PostMapping("/schedule/add")
     public R addCourseSchedule(@RequestBody CourseSchedule schedule) {
