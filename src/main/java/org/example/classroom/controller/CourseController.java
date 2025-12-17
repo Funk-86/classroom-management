@@ -236,9 +236,17 @@ public class CourseController {
             LocalDate start = startDate != null ? LocalDate.parse(startDate) : null;
             LocalDate end = endDate != null ? LocalDate.parse(endDate) : null;
 
-            // 如果提供了classId和week，使用班级课表查询
-            if (classId != null && !classId.trim().isEmpty() && week != null) {
-                List<CourseSchedule> schedules = courseService.getClassTimetableByWeek(classId, week);
+            // 如果提供了classId，使用班级课表查询
+            if (classId != null && !classId.trim().isEmpty()) {
+                // 如果有week参数且不为空，使用指定的周次
+                int weekNumber;
+                if (week != null && week > 0) {
+                    weekNumber = week;
+                } else {
+                    // 如果没有week参数或week为0，使用当前周次
+                    weekNumber = courseService.getCurrentWeek();
+                }
+                List<CourseSchedule> schedules = courseService.getClassTimetableByWeek(classId, weekNumber);
                 return R.ok().put("data", schedules);
             }
 
