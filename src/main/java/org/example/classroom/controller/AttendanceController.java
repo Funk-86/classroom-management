@@ -202,7 +202,12 @@ public class AttendanceController {
             List<AttendanceRecord> records = attendanceService.getRelatedSessionsRecords(sessionId);
             return R.ok().put("data", records);
         } catch (Exception e) {
-            return R.error("获取签到记录失败: " + e.getMessage());
+            e.printStackTrace(); // 打印详细异常堆栈
+            String errorMsg = e.getMessage();
+            if (errorMsg == null || errorMsg.isEmpty()) {
+                errorMsg = e.getClass().getSimpleName() + ": " + (e.getCause() != null ? e.getCause().getMessage() : "未知错误");
+            }
+            return R.error("获取签到记录失败: " + errorMsg);
         }
     }
 

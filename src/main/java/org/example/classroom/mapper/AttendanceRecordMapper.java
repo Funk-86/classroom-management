@@ -76,7 +76,7 @@ public interface AttendanceRecordMapper extends BaseMapper<AttendanceRecord> {
             "LEFT JOIN attendance_records r ON r.session_id = #{sessionId} ",
             "  AND r.student_id = all_students.student_id ",
             "WHERE s.session_id = #{sessionId} ",
-            "ORDER BY all_students.class_name, all_students.student_name, r.checkin_time DESC"
+            "ORDER BY COALESCE(all_students.class_name, ''), COALESCE(all_students.student_name, ''), r.checkin_time DESC"
     })
     List<AttendanceRecord> selectRecordsBySession(@Param("sessionId") String sessionId);
 
