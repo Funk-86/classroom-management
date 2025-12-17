@@ -215,6 +215,28 @@ public class ClassroomOccupationServiceImpl implements ClassroomOccupationServic
             conflicts.removeIf(schedule -> schedule.getScheduleId().equals(excludeScheduleId));
         }
 
+        // 获取当前周次，用于过滤已结束的课程
+        int currentWeek = WeekCalculator.getWeekNumber(date);
+
+        // 过滤掉已结束的课程（不参与冲突检测）
+        conflicts.removeIf(schedule -> {
+            if (schedule.getScheduleType() != null && schedule.getScheduleType() == 0) {
+                // 每周重复的课程，检查周次范围
+                Integer startWeek = schedule.getStartWeek();
+                Integer endWeek = schedule.getEndWeek();
+                if (startWeek != null && endWeek != null) {
+                    // 如果当前周次不在课程的开始周次和结束周次之间，则已结束
+                    return currentWeek < startWeek || currentWeek > endWeek;
+                }
+            } else if (schedule.getScheduleType() != null && schedule.getScheduleType() == 1) {
+                // 单次安排的课程，检查日期是否已过期
+                if (schedule.getScheduleDate() != null) {
+                    return schedule.getScheduleDate().isBefore(date);
+                }
+            }
+            return false; // 默认不删除
+        });
+
         // 过滤掉同一课程、同一教师的冲突（同一教师教多个班级不算冲突）
         // 如果冲突列表中有多个课程安排，且它们都是同一课程、同一教师，则不算冲突
         if (conflicts.size() > 1) {
