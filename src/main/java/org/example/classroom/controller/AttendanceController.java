@@ -98,34 +98,20 @@ public class AttendanceController {
 
             session.setTeacherId(teacherId);
 
-            // 如果有多个班级ID，为每个班级创建一个签到活动
-            if (classIds != null && classIds.size() > 1) {
-                List<AttendanceSession> createdSessions = new java.util.ArrayList<>();
-                for (String classId : classIds) {
-                    AttendanceSession sessionCopy = new AttendanceSession();
-                    sessionCopy.setCourseId(session.getCourseId());
-                    sessionCopy.setClassId(classId);
-                    sessionCopy.setSessionTitle(session.getSessionTitle());
-                    sessionCopy.setLatitude(session.getLatitude());
-                    sessionCopy.setLongitude(session.getLongitude());
-                    sessionCopy.setRadius(session.getRadius());
-                    sessionCopy.setStartTime(session.getStartTime());
-                    sessionCopy.setEndTime(session.getEndTime());
-                    sessionCopy.setTeacherId(teacherId);
-
-                    AttendanceSession created = attendanceService.createSession(sessionCopy);
-                    createdSessions.add(created);
-                }
-                return R.ok().put("data", createdSessions).put("count", createdSessions.size());
-            } else {
-                // 单个班级或全部班级
-                String classId = classIds != null && classIds.size() == 1 ? classIds.get(0) :
-                        (String) requestData.get("classId");
+            // 统一处理：只创建一个签到活动，不指定classId（表示所有关联班级）
+            // 如果指定了单个班级，则设置classId；如果多个班级或未指定，则不设置classId（表示所有班级）
+            if (classIds != null && classIds.size() == 1) {
+                // 单个班级
+                session.setClassId(classIds.get(0));
+            } else if (classIds == null || classIds.isEmpty()) {
+                // 未选择班级，使用传入的classId（可能为null，表示所有班级）
+                String classId = (String) requestData.get("classId");
                 session.setClassId(classId);
-
-                AttendanceSession created = attendanceService.createSession(session);
-                return R.ok().put("data", created);
             }
+            // 多个班级时，不设置classId，表示所有关联班级
+
+            AttendanceSession created = attendanceService.createSession(session);
+            return R.ok().put("data", created);
         } catch (Exception e) {
             e.printStackTrace(); // 打印详细错误信息
             return R.error("发起签到失败: " + e.getMessage());

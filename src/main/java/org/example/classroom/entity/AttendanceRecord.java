@@ -38,5 +38,15 @@ public class AttendanceRecord {
 
     @TableField(exist = false)
     private String sessionTitle;
+
+    // 班级信息
+    @TableField(exist = false)
+    private String classId;
+
+    @TableField(exist = false)
+    private String className;
+
+    @TableField(exist = false)
+    private String classCode;
 }
 

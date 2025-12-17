@@ -40,10 +40,16 @@ public class Course {
     private String teacherName;
 
     @TableField(exist = false)
-    private String className; // 班级名称
+    private String className; // 班级名称（单个，兼容旧数据）
 
     @TableField(exist = false)
-    private String classCode; // 新增：班级代码
+    private String classCode; // 新增：班级代码（单个，兼容旧数据）
+
+    @TableField(exist = false)
+    private java.util.List<String> classNames; // 多个班级名称列表
+
+    @TableField(exist = false)
+    private java.util.List<String> classCodes; // 多个班级代码列表
 
 
     // 构造函数
@@ -176,6 +182,22 @@ public class Course {
 
     public void setClassCode(String classCode) {
         this.classCode = classCode;
+    }
+
+    public java.util.List<String> getClassNames() {
+        return classNames;
+    }
+
+    public void setClassNames(java.util.List<String> classNames) {
+        this.classNames = classNames;
+    }
+
+    public java.util.List<String> getClassCodes() {
+        return classCodes;
+    }
+
+    public void setClassCodes(java.util.List<String> classCodes) {
+        this.classCodes = classCodes;
     }
 
     // 选课状态文本转换

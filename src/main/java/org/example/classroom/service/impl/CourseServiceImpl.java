@@ -61,7 +61,35 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
 
     @Override
     public Course getCourseWithDetail(String courseId) {
-        return courseMapper.selectCourseWithDetail(courseId);
+        Course course = courseMapper.selectCourseWithDetail(courseId);
+        if (course != null) {
+            // 查询课程关联的所有班级
+            List<CourseClass> courseClasses = courseClassMapper.selectByCourseId(courseId);
+            if (courseClasses != null && !courseClasses.isEmpty()) {
+                // 设置多个班级信息
+                List<String> classNames = new java.util.ArrayList<>();
+                List<String> classCodes = new java.util.ArrayList<>();
+                for (CourseClass cc : courseClasses) {
+                    if (cc.getClassName() != null) {
+                        classNames.add(cc.getClassName());
+                    }
+                    if (cc.getClassCode() != null) {
+                        classCodes.add(cc.getClassCode());
+                    }
+                }
+                course.setClassNames(classNames);
+                course.setClassCodes(classCodes);
+
+                // 兼容旧数据：如果只有一个班级，也设置单个班级名称
+                if (classNames.size() == 1) {
+                    course.setClassName(classNames.get(0));
+                } else if (classNames.size() > 1) {
+                    // 多个班级时，用逗号连接作为单个显示
+                    course.setClassName(String.join(", ", classNames));
+                }
+            }
+        }
+        return course;
     }
 
     @Override
