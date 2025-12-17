@@ -7,6 +7,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -69,6 +70,17 @@ public class GlobalExceptionHandler {
     public R handleIllegalArgumentException(IllegalArgumentException e) {
         log.warn("非法参数: {}", e.getMessage());
         return R.error(400, e.getMessage());
+    }
+
+    /**
+     * 处理HTTP方法不支持异常
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
+    public R handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException e) {
+        log.warn("HTTP方法不支持: {}", e.getMethod());
+        String supportedMethods = e.getSupportedMethods() != null ? String.join(", ", e.getSupportedMethods()) : "未知";
+        return R.error(405, "请求方法 " + e.getMethod() + " 不支持，支持的方法: " + supportedMethods);
     }
 
     /**

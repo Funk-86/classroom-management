@@ -21,6 +21,16 @@ public class SemesterController {
         return R.ok().put("data", list);
     }
 
+    @GetMapping("/{id}")
+    public R getById(@PathVariable String id) {
+        Semester semester = semesterService.getById(id);
+        if (semester != null) {
+            return R.ok().put("data", semester);
+        } else {
+            return R.error("学期不存在");
+        }
+    }
+
     @PostMapping
     public R create(@RequestBody Semester semester) {
         if (semester.getName() == null || semester.getAcademicYear() == null ||
