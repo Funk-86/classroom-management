@@ -33,17 +33,33 @@ public interface AttendanceRecordMapper extends BaseMapper<AttendanceRecord> {
             "FROM attendance_sessions s " +
             "JOIN courses c ON s.course_id = c.course_id " +
             "LEFT JOIN ( " +
-            "  SELECT DISTINCT sc.student_id, u.user_name as student_name " +
+            "  -- 如果签到活动指定了classId，只查询该班级的学生 " +
+            "  SELECT DISTINCT u.user_id as student_id, u.user_name as student_name " +
+            "  FROM attendance_sessions s_inner " +
+            "  JOIN users u ON s_inner.class_id = u.class_id AND u.user_role = 0 " +
+            "  WHERE s_inner.session_id = #{sessionId} " +
+            "    AND s_inner.class_id IS NOT NULL " +
+            "  UNION " +
+            "  -- 如果签到活动没有指定classId，查询所有相关学生 " +
+            "  SELECT DISTINCT sc.student_id, u2.user_name as student_name " +
             "  FROM student_courses sc " +
-            "  JOIN users u ON sc.student_id = u.user_id AND u.user_role = 0 " +
+            "  JOIN users u2 ON sc.student_id = u2.user_id AND u2.user_role = 0 " +
             "  WHERE sc.course_id = (SELECT course_id FROM attendance_sessions WHERE session_id = #{sessionId}) " +
             "    AND sc.enrollment_status = 1 " +
+            "    AND (SELECT class_id FROM attendance_sessions WHERE session_id = #{sessionId}) IS NULL " +
             "  UNION " +
-            "  SELECT DISTINCT u2.user_id as student_id, u2.user_name as student_name " +
-            "  FROM courses c_inner " +
-            "  JOIN users u2 ON c_inner.class_id = u2.class_id AND u2.user_role = 0 " +
-            "  WHERE c_inner.course_id = (SELECT course_id FROM attendance_sessions WHERE session_id = #{sessionId}) " +
-            "    AND c_inner.class_id IS NOT NULL " +
+            "  SELECT DISTINCT u3.user_id as student_id, u3.user_name as student_name " +
+            "  FROM course_classes cc " +
+            "  JOIN users u3 ON cc.class_id = u3.class_id AND u3.user_role = 0 " +
+            "  WHERE cc.course_id = (SELECT course_id FROM attendance_sessions WHERE session_id = #{sessionId}) " +
+            "    AND (SELECT class_id FROM attendance_sessions WHERE session_id = #{sessionId}) IS NULL " +
+            "  UNION " +
+            "  SELECT DISTINCT u4.user_id as student_id, u4.user_name as student_name " +
+            "  FROM courses c_old " +
+            "  JOIN users u4 ON c_old.class_id = u4.class_id AND u4.user_role = 0 " +
+            "  WHERE c_old.course_id = (SELECT course_id FROM attendance_sessions WHERE session_id = #{sessionId}) " +
+            "    AND c_old.class_id IS NOT NULL " +
+            "    AND (SELECT class_id FROM attendance_sessions WHERE session_id = #{sessionId}) IS NULL " +
             ") all_students ON 1=1 " +
             "LEFT JOIN attendance_records r ON r.session_id = #{sessionId} " +
             "  AND r.student_id = all_students.student_id " +

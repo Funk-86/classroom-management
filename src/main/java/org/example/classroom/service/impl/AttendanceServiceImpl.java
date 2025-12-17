@@ -261,6 +261,41 @@ public class AttendanceServiceImpl extends ServiceImpl<AttendanceSessionMapper, 
     }
 
     @Override
+    public List<AttendanceRecord> getRelatedSessionsRecords(String sessionId) {
+        // 获取当前签到活动信息
+        AttendanceSession currentSession = sessionMapper.selectSessionWithDetail(sessionId);
+        if (currentSession == null) {
+            return java.util.Collections.emptyList();
+        }
+
+        // 查找同一课程、同一时间、同一教师的签到活动（可能是多班级签到）
+        List<AttendanceSession> relatedSessions = sessionMapper.selectRelatedSessions(
+                currentSession.getCourseId(),
+                currentSession.getStartTime(),
+                currentSession.getEndTime(),
+                currentSession.getTeacherId(),
+                currentSession.getSessionTitle()
+        );
+
+        // 合并所有相关活动的学生记录
+        java.util.Map<String, AttendanceRecord> mergedRecords = new java.util.HashMap<>();
+
+        for (AttendanceSession relatedSession : relatedSessions) {
+            List<AttendanceRecord> records = recordMapper.selectRecordsBySession(relatedSession.getSessionId());
+            for (AttendanceRecord record : records) {
+                String studentId = record.getStudentId();
+                // 如果该学生还没有记录，或者当前记录是已签到的，则使用当前记录
+                if (!mergedRecords.containsKey(studentId) ||
+                        (record.getCheckinStatus() != null && record.getCheckinStatus() == 1)) {
+                    mergedRecords.put(studentId, record);
+                }
+            }
+        }
+
+        return new java.util.ArrayList<>(mergedRecords.values());
+    }
+
+    @Override
     public List<AttendanceRecord> getStudentRecords(String studentId, Integer limit) {
         if (limit == null) limit = 20;
         return recordMapper.selectStudentRecords(studentId, limit);

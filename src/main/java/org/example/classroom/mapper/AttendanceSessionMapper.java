@@ -22,6 +22,27 @@ public interface AttendanceSessionMapper extends BaseMapper<AttendanceSession> {
             "WHERE s.session_id = #{sessionId}")
     AttendanceSession selectSessionWithDetail(@Param("sessionId") String sessionId);
 
+    // 查询相关的签到活动（同一课程、同一时间、同一教师、同一标题）
+    @Select("SELECT s.*, c.course_name, u.user_name as teacher_name, " +
+            "cl.classroom_name, cls.class_name " +
+            "FROM attendance_sessions s " +
+            "LEFT JOIN courses c ON s.course_id = c.course_id " +
+            "LEFT JOIN users u ON s.teacher_id = u.user_id " +
+            "LEFT JOIN classrooms cl ON s.classroom_id = cl.classroom_id " +
+            "LEFT JOIN classes cls ON s.class_id = cls.class_id " +
+            "WHERE s.course_id = #{courseId} " +
+            "  AND s.start_time = #{startTime} " +
+            "  AND s.end_time = #{endTime} " +
+            "  AND s.teacher_id = #{teacherId} " +
+            "  AND (s.session_title = #{sessionTitle} OR (#{sessionTitle} IS NULL AND s.session_title IS NULL)) " +
+            "  AND s.status != 2 " +
+            "ORDER BY s.created_at")
+    List<AttendanceSession> selectRelatedSessions(@Param("courseId") String courseId,
+                                                  @Param("startTime") java.time.LocalDateTime startTime,
+                                                  @Param("endTime") java.time.LocalDateTime endTime,
+                                                  @Param("teacherId") String teacherId,
+                                                  @Param("sessionTitle") String sessionTitle);
+
     @Select("SELECT s.*, c.course_name, u.user_name as teacher_name, " +
             "cl.classroom_name, " +
             "(SELECT COUNT(*) FROM attendance_records WHERE session_id = s.session_id) as checked_in_count " +

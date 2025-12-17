@@ -208,11 +208,12 @@ public class AttendanceController {
         }
     }
 
-    // 获取签到活动的签到记录列表
+    // 获取签到活动的签到记录列表（自动合并相关活动的记录）
     @GetMapping("/record/session/{sessionId}")
     public R getSessionRecords(@PathVariable String sessionId) {
         try {
-            List<AttendanceRecord> records = attendanceService.getSessionRecords(sessionId);
+            // 使用合并查询，自动合并同一批创建的多班级签到活动记录
+            List<AttendanceRecord> records = attendanceService.getRelatedSessionsRecords(sessionId);
             return R.ok().put("data", records);
         } catch (Exception e) {
             return R.error("获取签到记录失败: " + e.getMessage());

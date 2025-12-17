@@ -33,6 +33,9 @@ public interface AttendanceService extends IService<AttendanceSession> {
     // 获取签到活动的签到记录列表
     List<AttendanceRecord> getSessionRecords(String sessionId);
 
+    // 获取相关签到活动的合并记录（用于多班级签到）
+    List<AttendanceRecord> getRelatedSessionsRecords(String sessionId);
+
     // 获取学生的签到记录
     List<AttendanceRecord> getStudentRecords(String studentId, Integer limit);
 
