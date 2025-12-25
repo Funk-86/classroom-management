@@ -111,7 +111,41 @@ public class ClassroomOccupationServiceImpl implements ClassroomOccupationServic
         List<CourseSchedule> schedules = courseScheduleMapper.checkClassroomConflict(
                 classroomId, sqlDate, Time.valueOf(LocalTime.MIN), Time.valueOf(LocalTime.MAX)
         );
-        occupations.addAll(convertSchedulesToOccupationInfo(schedules, date));
+
+        // 额外过滤：确保每周重复的课程只在指定周次范围内显示
+        int weekNumber = WeekCalculator.getWeekNumber(date);
+        int dayOfWeek = date.getDayOfWeek().getValue(); // 1-7 (Monday-Sunday)
+
+        List<CourseSchedule> filteredSchedules = schedules.stream()
+                .filter(schedule -> {
+                    if (schedule.getScheduleType() != null && schedule.getScheduleType() == 0) {
+                        // 每周重复的课程，检查周次范围和星期几
+                        Integer startWeek = schedule.getStartWeek();
+                        Integer endWeek = schedule.getEndWeek();
+                        Integer scheduleDayOfWeek = schedule.getDayOfWeek();
+
+                        // 检查周次范围
+                        if (startWeek != null && endWeek != null) {
+                            if (weekNumber < startWeek || weekNumber > endWeek) {
+                                return false; // 不在周次范围内
+                            }
+                        }
+
+                        // 检查星期几是否匹配
+                        if (scheduleDayOfWeek != null && !scheduleDayOfWeek.equals(dayOfWeek)) {
+                            return false; // 星期几不匹配
+                        }
+                    } else if (schedule.getScheduleType() != null && schedule.getScheduleType() == 1) {
+                        // 单次安排的课程，检查日期是否匹配
+                        if (schedule.getScheduleDate() != null && !schedule.getScheduleDate().equals(date)) {
+                            return false; // 日期不匹配
+                        }
+                    }
+                    return true;
+                })
+                .collect(Collectors.toList());
+
+        occupations.addAll(convertSchedulesToOccupationInfo(filteredSchedules, date));
 
         // 获取签到活动占用
         List<AttendanceSession> sessions = attendanceSessionMapper.checkAttendanceSessionConflict(
