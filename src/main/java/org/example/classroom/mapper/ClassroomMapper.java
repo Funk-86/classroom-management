@@ -35,4 +35,12 @@ public interface ClassroomMapper extends BaseMapper<Classroom> {
                                                @Param("minCapacity") Integer minCapacity,
                                                @Param("buildingId") String buildingId,
                                                @Param("equipment") String equipment);
+
+    // 检查教室是否有关联的预约记录
+    @Select("SELECT COUNT(*) FROM reservations WHERE classroom_id = #{classroomId}")
+    long countReservationsByClassroomId(@Param("classroomId") String classroomId);
+
+    // 检查教室是否有关联的课程安排
+    @Select("SELECT COUNT(*) FROM course_schedules WHERE classroom_id = #{classroomId}")
+    long countCourseSchedulesByClassroomId(@Param("classroomId") String classroomId);
 }

@@ -149,11 +149,31 @@ public class ClassroomController {
     // 删除教室
     @DeleteMapping("/delete/{classroomId}")
     public R deleteClassroom(@PathVariable String classroomId) {
-        boolean success = classroomService.deleteClassroom(classroomId);
-        if (success) {
-            return R.ok("删除成功");
-        } else {
-            return R.error("删除失败");
+        try {
+            // 检查教室是否存在
+            Classroom classroom = classroomService.getClassroomById(classroomId);
+            if (classroom == null) {
+                return R.error("教室不存在");
+            }
+
+            boolean success = classroomService.deleteClassroom(classroomId);
+            if (success) {
+                return R.ok("删除成功");
+            } else {
+                return R.error("删除失败");
+            }
+        } catch (IllegalArgumentException e) {
+            return R.error(e.getMessage());
+        } catch (RuntimeException e) {
+            // 捕获关联数据检查的异常
+            return R.error(e.getMessage());
+        } catch (Exception e) {
+            // 捕获其他异常（如外键约束异常）
+            String errorMessage = e.getMessage();
+            if (errorMessage != null && errorMessage.contains("foreign key constraint")) {
+                return R.error("该教室存在关联数据（预约记录或课程安排），无法删除。请先删除或处理相关数据。");
+            }
+            return R.error("删除教室失败: " + (errorMessage != null ? errorMessage : "系统内部错误，请联系管理员"));
         }
     }
 

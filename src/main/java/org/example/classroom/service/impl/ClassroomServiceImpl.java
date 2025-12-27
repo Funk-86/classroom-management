@@ -105,6 +105,22 @@ public class ClassroomServiceImpl extends ServiceImpl<ClassroomMapper, Classroom
 
     @Override
     public boolean deleteClassroom(String classroomId) {
+        if (classroomId == null || classroomId.trim().isEmpty()) {
+            throw new IllegalArgumentException("教室ID不能为空");
+        }
+
+        // 检查是否有关联的预约记录
+        long reservationCount = baseMapper.countReservationsByClassroomId(classroomId);
+        if (reservationCount > 0) {
+            throw new RuntimeException("该教室存在 " + reservationCount + " 条预约记录，无法删除。请先删除或处理相关预约记录。");
+        }
+
+        // 检查是否有关联的课程安排
+        long scheduleCount = baseMapper.countCourseSchedulesByClassroomId(classroomId);
+        if (scheduleCount > 0) {
+            throw new RuntimeException("该教室存在 " + scheduleCount + " 条课程安排，无法删除。请先删除或处理相关课程安排。");
+        }
+
         return removeById(classroomId);
     }
 
