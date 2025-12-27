@@ -43,4 +43,8 @@ public interface ClassroomMapper extends BaseMapper<Classroom> {
     // 检查教室是否有关联的课程安排
     @Select("SELECT COUNT(*) FROM course_schedules WHERE classroom_id = #{classroomId}")
     long countCourseSchedulesByClassroomId(@Param("classroomId") String classroomId);
+
+    // 检查教室是否有关联的教室状态记录
+    @Select("SELECT COUNT(*) FROM classroom_status WHERE classroom_id = #{classroomId}")
+    long countClassroomStatusByClassroomId(@Param("classroomId") String classroomId);
 }

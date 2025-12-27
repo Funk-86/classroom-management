@@ -121,6 +121,12 @@ public class ClassroomServiceImpl extends ServiceImpl<ClassroomMapper, Classroom
             throw new RuntimeException("该教室存在 " + scheduleCount + " 条课程安排，无法删除。请先删除或处理相关课程安排。");
         }
 
+        // 检查是否有关联的教室状态记录
+        long statusCount = baseMapper.countClassroomStatusByClassroomId(classroomId);
+        if (statusCount > 0) {
+            throw new RuntimeException("该教室存在 " + statusCount + " 条状态记录，无法删除。请先删除或处理相关状态记录。");
+        }
+
         return removeById(classroomId);
     }
 
