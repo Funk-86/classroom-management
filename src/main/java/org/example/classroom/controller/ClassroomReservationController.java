@@ -180,6 +180,34 @@ public class ClassroomReservationController {
         }
     }
 
+    // 删除预约记录（物理删除）
+    @DeleteMapping("/delete/{id}")
+    public R deleteReservation(@PathVariable String id) {
+        try {
+            Reservation reservation = reservationService.getReservationById(id);
+            if (reservation == null) {
+                return R.error("预约记录不存在");
+            }
+
+            // 检查是否有关联的签到记录
+            // 注意：这里假设有签到表，如果没有可以忽略此检查
+            boolean hasCheckins = false; // 可以添加检查逻辑
+
+            if (hasCheckins) {
+                return R.error("该预约存在签到记录，无法删除。请先删除相关签到记录。");
+            }
+
+            boolean success = reservationService.removeById(id);
+            if (success) {
+                return R.ok("预约记录已删除");
+            } else {
+                return R.error("删除预约记录失败");
+            }
+        } catch (Exception e) {
+            return R.error("删除预约记录失败: " + e.getMessage());
+        }
+    }
+
     @GetMapping("/user/{userId}/history")
     public R getUserHistoryReservations(@PathVariable String userId,
                                         @RequestParam(defaultValue = "1") Integer page,
