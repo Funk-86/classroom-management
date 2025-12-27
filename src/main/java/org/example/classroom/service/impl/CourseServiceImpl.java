@@ -172,8 +172,20 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
     @Autowired
     private org.example.classroom.service.ClassroomOccupationService classroomOccupationService;
 
+    @Autowired
+    private org.example.classroom.service.ClassroomService classroomService;
+
     @Override
+    @Transactional
     public boolean addCourseSchedule(CourseSchedule schedule) {
+        // 验证教室是否存在
+        if (schedule.getClassroomId() != null && !schedule.getClassroomId().trim().isEmpty()) {
+            org.example.classroom.entity.Classroom classroom = classroomService.getClassroomById(schedule.getClassroomId());
+            if (classroom == null) {
+                throw new RuntimeException("教室ID " + schedule.getClassroomId() + " 不存在，请检查教室ID是否正确");
+            }
+        }
+
         // 使用统一的教室占用冲突检测
         java.time.LocalDate checkDate = schedule.getScheduleDate() != null
                 ? schedule.getScheduleDate()
@@ -197,6 +209,14 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
 
     @Override
     public boolean updateCourseSchedule(CourseSchedule schedule) {
+        // 验证教室是否存在
+        if (schedule.getClassroomId() != null && !schedule.getClassroomId().trim().isEmpty()) {
+            org.example.classroom.entity.Classroom classroom = classroomService.getClassroomById(schedule.getClassroomId());
+            if (classroom == null) {
+                throw new RuntimeException("教室ID " + schedule.getClassroomId() + " 不存在，请检查教室ID是否正确");
+            }
+        }
+
         // 使用统一的教室占用冲突检测（排除自身）
         java.time.LocalDate checkDate = schedule.getScheduleDate() != null
                 ? schedule.getScheduleDate()
