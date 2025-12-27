@@ -115,10 +115,13 @@ public class ClassroomServiceImpl extends ServiceImpl<ClassroomMapper, Classroom
             throw new RuntimeException("该教室存在 " + reservationCount + " 条预约记录，无法删除。请先删除或处理相关预约记录。");
         }
 
-        // 检查是否有关联的课程安排
-        long scheduleCount = baseMapper.countCourseSchedulesByClassroomId(classroomId);
-        if (scheduleCount > 0) {
-            throw new RuntimeException("该教室存在 " + scheduleCount + " 条课程安排，无法删除。请先删除或处理相关课程安排。");
+        // 检查是否有关联的课程安排（course_schedules表）
+        long courseScheduleCount = baseMapper.countCourseSchedulesByClassroomId(classroomId);
+        // 检查是否有关联的旧课程表记录（schedules表）
+        long scheduleCount = baseMapper.countSchedulesByClassroomId(classroomId);
+        long totalScheduleCount = courseScheduleCount + scheduleCount;
+        if (totalScheduleCount > 0) {
+            throw new RuntimeException("该教室存在 " + totalScheduleCount + " 条课程安排（course_schedules: " + courseScheduleCount + " 条, schedules: " + scheduleCount + " 条），无法删除。请先删除或处理相关课程安排。");
         }
 
         // 检查是否有关联的教室状态记录
