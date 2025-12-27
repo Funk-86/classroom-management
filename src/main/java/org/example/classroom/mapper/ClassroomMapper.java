@@ -40,8 +40,10 @@ public interface ClassroomMapper extends BaseMapper<Classroom> {
     @Select("SELECT COUNT(*) FROM reservations WHERE classroom_id = #{classroomId}")
     long countReservationsByClassroomId(@Param("classroomId") String classroomId);
 
-    // 检查教室是否有关联的课程安排（只检查有效的课程安排，course_id不为空）
-    @Select("SELECT COUNT(*) FROM course_schedules WHERE classroom_id = #{classroomId} AND course_id IS NOT NULL")
+    // 检查教室是否有关联的课程安排（只检查有效的课程安排，course_id不为空且对应的课程存在）
+    @Select("SELECT COUNT(*) FROM course_schedules cs " +
+            "INNER JOIN courses c ON cs.course_id = c.course_id " +
+            "WHERE cs.classroom_id = #{classroomId} AND cs.course_id IS NOT NULL")
     long countCourseSchedulesByClassroomId(@Param("classroomId") String classroomId);
 
     // 检查教室是否有关联的旧课程表记录（schedules表）
