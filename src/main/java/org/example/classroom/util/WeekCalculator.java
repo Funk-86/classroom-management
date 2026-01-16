@@ -79,6 +79,46 @@ public class WeekCalculator {
     }
 
     /**
+     * 获取学期结束日期
+     */
+    private static LocalDate getSemesterEndDate(String academicYear, Integer semester) {
+        // 解析学年，如"2025-2026"
+        String[] years = academicYear.split("-");
+        int startYear = Integer.parseInt(years[0]);
+
+        if (semester == 1) {
+            // 春季学期：8月31日
+            return LocalDate.of(startYear, 8, 31);
+        } else {
+            // 秋季学期：次年2月28日（或29日，根据年份）
+            int endYear = startYear + 1;
+            // 检查是否为闰年
+            if (endYear % 4 == 0 && (endYear % 100 != 0 || endYear % 400 == 0)) {
+                return LocalDate.of(endYear, 2, 29);
+            } else {
+                return LocalDate.of(endYear, 2, 28);
+            }
+        }
+    }
+
+    /**
+     * 检查指定日期是否在学期内
+     */
+    public static boolean isDateInSemester(LocalDate date) {
+        AcademicYearSemester current = getCurrentAcademicYearSemester();
+        LocalDate startDate = getSemesterStartDate(current.getAcademicYear(), current.getSemester());
+        LocalDate endDate = getSemesterEndDate(current.getAcademicYear(), current.getSemester());
+        return !date.isBefore(startDate) && !date.isAfter(endDate);
+    }
+
+    /**
+     * 检查当前日期是否在学期内
+     */
+    public static boolean isCurrentDateInSemester() {
+        return isDateInSemester(LocalDate.now());
+    }
+
+    /**
      * 学年学期信息类
      */
     public static class AcademicYearSemester {

@@ -473,6 +473,7 @@ public class TimetableController {
     @GetMapping("/current-week")
     public R getCurrentWeekInfo() {
         try {
+            boolean isInSemester = WeekCalculator.isCurrentDateInSemester();
             int currentWeek = courseService.getCurrentWeek();
             WeekCalculator.AcademicYearSemester academicYearSemester = courseService.getCurrentAcademicYearSemester();
             WeekCalculator.WeekDateRange weekRange = WeekCalculator.getDateRangeByWeek(currentWeek);
@@ -483,7 +484,8 @@ public class TimetableController {
                     "semester", academicYearSemester.getSemester(),
                     "weekStartDate", weekRange.getStartDate(),
                     "weekEndDate", weekRange.getEndDate(),
-                    "currentDate", LocalDate.now()
+                    "currentDate", LocalDate.now(),
+                    "semesterEnded", !isInSemester
             );
 
             return R.ok().put("data", result);
@@ -515,6 +517,21 @@ public class TimetableController {
     public R getClassTimetableByWeek(@RequestParam String classId,
                                      @RequestParam(required = false) Integer week) {
         try {
+            // 检查当前日期是否在学期内
+            if (!WeekCalculator.isCurrentDateInSemester()) {
+                WeekCalculator.AcademicYearSemester academicYearSemester = courseService.getCurrentAcademicYearSemester();
+                Map<String, Object> result = Map.of(
+                        "weekNumber", 0,
+                        "timetable", new java.util.HashMap<>(),
+                        "weekStartDate", LocalDate.now(),
+                        "weekEndDate", LocalDate.now(),
+                        "classId", classId,
+                        "semesterEnded", true,
+                        "message", "当前学期已结束"
+                );
+                return R.ok().put("data", result);
+            }
+
             int weekNumber = week != null ? week : courseService.getCurrentWeek();
             List<CourseSchedule> timetable = courseService.getClassTimetableByWeek(classId, weekNumber);
 
@@ -533,7 +550,8 @@ public class TimetableController {
                     "timetable", groupedByDay,
                     "weekStartDate", weekRange.getStartDate(),
                     "weekEndDate", weekRange.getEndDate(),
-                    "classId", classId
+                    "classId", classId,
+                    "semesterEnded", false
             );
 
             return R.ok().put("data", result);
