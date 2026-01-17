@@ -22,6 +22,14 @@ public interface UserMapper extends BaseMapper<User> {
     @Select("SELECT * FROM users WHERE teacher_number = #{teacherNumber} AND user_role = 1")
     User selectByTeacherNumber(@Param("teacherNumber") String teacherNumber);
 
+    // 检查学号是否被其他用户使用（用于更新时检查）
+    @Select("SELECT * FROM users WHERE student_number = #{studentNumber} AND user_id != #{excludeUserId}")
+    User selectByStudentNumberExcludingUser(@Param("studentNumber") String studentNumber, @Param("excludeUserId") String excludeUserId);
+
+    // 检查教师工号是否被其他用户使用（用于更新时检查）
+    @Select("SELECT * FROM users WHERE teacher_number = #{teacherNumber} AND user_id != #{excludeUserId}")
+    User selectByTeacherNumberExcludingUser(@Param("teacherNumber") String teacherNumber, @Param("excludeUserId") String excludeUserId);
+
     @Select("SELECT * FROM users ORDER BY created_at DESC")
     List<User> selectAllUsers();
 

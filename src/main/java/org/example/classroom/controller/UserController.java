@@ -4,6 +4,7 @@ import org.example.classroom.dto.R;
 import org.example.classroom.dto.UserRequest;
 import org.example.classroom.dto.UserResponse;
 import org.example.classroom.entity.User;
+import org.example.classroom.mapper.UserMapper;
 import org.example.classroom.service.UserService;
 import org.example.classroom.util.TokenUtils;
 import org.slf4j.Logger;
@@ -26,6 +27,8 @@ public class UserController {
     private UserService userService;
     @Autowired
     private TokenUtils tokenUtils;
+    @Autowired
+    private UserMapper userMapper;
 
     // 获取当前用户信息
     @GetMapping("/current")
@@ -108,14 +111,30 @@ public class UserController {
                 user.setRealName(null);
             }
             user.setGender(userRequest.getGender());
-            // 处理学号和教师工号（允许修改）
+
+            // 检查学号和教师工号的唯一性（排除当前用户）
+            String newStudentNumber = null;
             if (userRequest.getStudentNumber() != null && !userRequest.getStudentNumber().trim().isEmpty()) {
-                user.setStudentNumber(userRequest.getStudentNumber().trim());
+                newStudentNumber = userRequest.getStudentNumber().trim();
+                // 检查学号是否被其他用户使用
+                User existingStudent = userMapper.selectByStudentNumberExcludingUser(newStudentNumber, userId);
+                if (existingStudent != null) {
+                    return R.error("学号 " + newStudentNumber + " 已被其他用户使用");
+                }
+                user.setStudentNumber(newStudentNumber);
             } else {
                 user.setStudentNumber(null);
             }
+
+            String newTeacherNumber = null;
             if (userRequest.getTeacherNumber() != null && !userRequest.getTeacherNumber().trim().isEmpty()) {
-                user.setTeacherNumber(userRequest.getTeacherNumber().trim());
+                newTeacherNumber = userRequest.getTeacherNumber().trim();
+                // 检查教师工号是否被其他用户使用
+                User existingTeacher = userMapper.selectByTeacherNumberExcludingUser(newTeacherNumber, userId);
+                if (existingTeacher != null) {
+                    return R.error("教师工号 " + newTeacherNumber + " 已被其他用户使用");
+                }
+                user.setTeacherNumber(newTeacherNumber);
             } else {
                 user.setTeacherNumber(null);
             }
