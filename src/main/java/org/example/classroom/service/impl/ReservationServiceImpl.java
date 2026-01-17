@@ -6,9 +6,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.example.classroom.dto.ApprovalRequest;
 import org.example.classroom.dto.UserReservationHistoryResponse;
-import org.example.classroom.entity.Reservation;
+import org.example.classroom.entity.*;
 import org.example.classroom.mapper.ReservationMapper;
-import org.example.classroom.service.ReservationService;
+import org.example.classroom.service.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -29,6 +29,15 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
 
     @org.springframework.beans.factory.annotation.Autowired
     private org.example.classroom.service.ClassroomOccupationService classroomOccupationService;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private HolidayService holidayService;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private ClassroomService classroomService;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private BuildingService buildingService;
 
     @Override
     public IPage<Reservation> getAllReservations(Integer page, Integer size, Integer status,
@@ -72,6 +81,9 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
     @Override
     @Transactional
     public Reservation createReservation(Reservation reservation) {
+        // 检查是否在假期内
+        checkHolidayConflict(reservation.getClassroomId(), reservation.getDate());
+
         // 使用统一的教室占用冲突检测
         org.example.classroom.dto.ClassroomConflictResult conflictResult =
                 classroomOccupationService.checkClassroomOccupation(
@@ -91,6 +103,64 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         reservation.setStatus(0);
         save(reservation);
         return reservation;
+    }
+
+    /**
+     * 检查预约日期是否在假期内
+     * @param classroomId 教室ID
+     * @param date 预约日期
+     * @throws IllegalArgumentException 如果日期在假期内
+     */
+    private void checkHolidayConflict(String classroomId, LocalDate date) {
+        try {
+            // 获取教室信息
+            Classroom classroom = classroomService.getById(classroomId);
+            if (classroom == null) {
+                log.warn("教室不存在: {}", classroomId);
+                return;
+            }
+
+            // 获取教学楼信息
+            Building building = buildingService.getBuildingById(classroom.getBuildingId());
+            if (building == null) {
+                log.warn("教学楼不存在: {}", classroom.getBuildingId());
+                return;
+            }
+
+            String campusId = building.getCampusId();
+
+            // 查询所有有效的假期（status = 1）
+            List<Holiday> holidays = holidayService.list(
+                    new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<Holiday>()
+                            .eq("status", 1)
+                            .and(wrapper -> wrapper
+                                    .isNull("campus_id")  // 全校假期（campus_id为null）
+                                    .or()
+                                    .eq("campus_id", campusId)  // 该校区特定假期
+                            )
+            );
+
+            // 检查日期是否在任何一个假期范围内
+            for (Holiday holiday : holidays) {
+                if (holiday.getStartDate() != null && holiday.getEndDate() != null) {
+                    // 检查日期是否在假期范围内（包含起止日期）
+                    if (!date.isBefore(holiday.getStartDate()) && !date.isAfter(holiday.getEndDate())) {
+                        throw new IllegalArgumentException(
+                                String.format("该日期在假期期间（%s：%s 至 %s），不能占用教室",
+                                        holiday.getName(),
+                                        holiday.getStartDate(),
+                                        holiday.getEndDate())
+                        );
+                    }
+                }
+            }
+        } catch (IllegalArgumentException e) {
+            // 重新抛出假期冲突异常
+            throw e;
+        } catch (Exception e) {
+            // 如果查询假期失败，记录日志但不阻止预约（避免因假期服务问题影响预约功能）
+            log.error("检查假期冲突时发生错误: {}", e.getMessage(), e);
+        }
     }
 
     @Override
