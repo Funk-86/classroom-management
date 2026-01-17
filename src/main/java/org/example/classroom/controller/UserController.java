@@ -100,6 +100,17 @@ public class UserController {
                 user.setClassId(null);
             }
 
+            // 处理新字段
+            user.setUserRole(userRequest.getUserRole());
+            if (userRequest.getRealName() != null && !userRequest.getRealName().trim().isEmpty()) {
+                user.setRealName(userRequest.getRealName().trim());
+            } else {
+                user.setRealName(null);
+            }
+            user.setGender(userRequest.getGender());
+            // 注意：学号和教师工号在更新时通常不应该修改，但如果需要修改，可以在这里处理
+            // 这里只允许设置，不允许清空（保持原有值）
+
             if (userService.updateById(user)) {
                 // 返回更新后的用户信息
                 User updatedUser = userService.getById(userId);
@@ -245,6 +256,11 @@ public class UserController {
             user.setCollegeId(userRequest.getCollegeId()); // 设置学院ID
             user.setClassId(userRequest.getClassId()); // 设置班级ID
             user.setPassword(userRequest.getPassword()); // 在service中会设置默认密码
+            // 设置新字段
+            user.setStudentNumber(userRequest.getStudentNumber() != null ? userRequest.getStudentNumber().trim() : null);
+            user.setTeacherNumber(userRequest.getTeacherNumber() != null ? userRequest.getTeacherNumber().trim() : null);
+            user.setRealName(userRequest.getRealName() != null ? userRequest.getRealName().trim() : null);
+            user.setGender(userRequest.getGender());
 
             if (userService.addUser(user)) {
                 UserResponse response = new UserResponse(user);
