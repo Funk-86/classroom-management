@@ -58,10 +58,48 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public LoginResponse login(String username, String password, Integer role) {
         try {
-            User user = baseMapper.selectByUsernameAndRole(username, role);
-            if (user == null) {
-                return new LoginResponse(false, "用户不存在或角色不匹配");
+            User user = null;
+
+            // 根据角色选择不同的登录方式
+            if (role != null) {
+                if (role == 0) {
+                    // 学生角色：优先按学号查询，如果找不到再按用户名查询
+                    user = baseMapper.selectByStudentNumber(username);
+                    if (user == null) {
+                        user = baseMapper.selectByUsernameAndRole(username, role);
+                    }
+                } else if (role == 1) {
+                    // 教师角色：优先按教师工号查询，如果找不到再按用户名查询
+                    user = baseMapper.selectByTeacherNumber(username);
+                    if (user == null) {
+                        user = baseMapper.selectByUsernameAndRole(username, role);
+                    }
+                } else {
+                    // 其他角色（管理员等）：按用户名查询
+                    user = baseMapper.selectByUsernameAndRole(username, role);
+                }
+            } else {
+                // 如果没有指定角色，按用户名查询
+                user = baseMapper.selectByUsername(username);
             }
+
+            if (user == null) {
+                String errorMsg = "用户不存在";
+                if (role != null) {
+                    if (role == 0) {
+                        errorMsg = "学号或用户不存在";
+                    } else if (role == 1) {
+                        errorMsg = "教师工号或用户不存在";
+                    }
+                }
+                return new LoginResponse(false, errorMsg);
+            }
+
+            // 验证角色是否匹配
+            if (role != null && !role.equals(user.getUserRole())) {
+                return new LoginResponse(false, "角色不匹配");
+            }
+
             // 使用BCrypt验证密码
             if (!passwordEncoder.matches(password, user.getPassword())) {
                 return new LoginResponse(false, "密码错误");
@@ -93,7 +131,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                     user.getUserName(),
                     user.getUserRole(),
                     user.getCollegeId(),  // 添加学院ID
-                    user.getClassId()     // 添加班级ID
+                    user.getClassId(),    // 添加班级ID
+                    user.getStudentNumber(), // 学号
+                    user.getTeacherNumber(), // 教师工号
+                    user.getRealName(),      // 真实姓名
+                    user.getGender()         // 性别
             );
             return new LoginResponse(true, "登录成功", sessionId, userInfo);
         } catch (RuntimeException e) {
@@ -135,7 +177,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                     user.getUserName(),
                     user.getUserRole(),
                     user.getCollegeId(),  // 添加学院ID
-                    user.getClassId()     // 添加班级ID
+                    user.getClassId(),    // 添加班级ID
+                    user.getStudentNumber(), // 学号
+                    user.getTeacherNumber(), // 教师工号
+                    user.getRealName(),      // 真实姓名
+                    user.getGender()         // 性别
             );
             return new LoginResponse(true, "Session有效", sessionId, userInfo);
         } else {

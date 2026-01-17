@@ -14,6 +14,14 @@ public interface UserMapper extends BaseMapper<User> {
     @Select("SELECT * FROM users WHERE user_name = #{username}")
     User selectByUsername(@Param("username") String username);
 
+    // 按学号查询学生
+    @Select("SELECT * FROM users WHERE student_number = #{studentNumber} AND user_role = 0")
+    User selectByStudentNumber(@Param("studentNumber") String studentNumber);
+
+    // 按教师工号查询教师
+    @Select("SELECT * FROM users WHERE teacher_number = #{teacherNumber} AND user_role = 1")
+    User selectByTeacherNumber(@Param("teacherNumber") String teacherNumber);
+
     @Select("SELECT * FROM users ORDER BY created_at DESC")
     List<User> selectAllUsers();
 
@@ -53,7 +61,8 @@ public interface UserMapper extends BaseMapper<User> {
     List<User> selectUsersByClassAndRole(@Param("classId") String classId, @Param("role") Integer role);
 
     // 查询用户详情（包含班级名称和学院名称）
-    @Select("SELECT u.user_id, u.openid, u.user_name, u.user_phone, u.user_role, u.user_avatar, " +
+    @Select("SELECT u.user_id, u.openid, u.student_number, u.teacher_number, u.real_name, u.gender, " +
+            "u.user_name, u.user_phone, u.user_role, u.user_avatar, " +
             "u.password, u.college_id, u.class_id, u.created_at, u.updated_at, " +
             "c.class_name AS className, col.college_name AS collegeName " +
             "FROM users u " +

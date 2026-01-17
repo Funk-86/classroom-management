@@ -9,6 +9,10 @@ public class User {
     private String userId;
 
     private String openid; // 修正为小写，与数据库一致
+    private String studentNumber; // 学号（用于学生登录）
+    private String teacherNumber; // 教师工号（用于教师登录）
+    private String realName; // 真实姓名（不可修改）
+    private Integer gender; // 性别(0女,1男,2其他)
     private String userName;
     private String userPhone;
     private Integer userRole;
@@ -49,6 +53,38 @@ public class User {
 
     public void setOpenid(String openid) {
         this.openid = openid;
+    }
+
+    public String getStudentNumber() {
+        return studentNumber;
+    }
+
+    public void setStudentNumber(String studentNumber) {
+        this.studentNumber = studentNumber;
+    }
+
+    public String getTeacherNumber() {
+        return teacherNumber;
+    }
+
+    public void setTeacherNumber(String teacherNumber) {
+        this.teacherNumber = teacherNumber;
+    }
+
+    public String getRealName() {
+        return realName;
+    }
+
+    public void setRealName(String realName) {
+        this.realName = realName;
+    }
+
+    public Integer getGender() {
+        return gender;
+    }
+
+    public void setGender(Integer gender) {
+        this.gender = gender;
     }
 
     public String getUserName() {
@@ -145,6 +181,10 @@ public class User {
         return "User{" +
                 "userId='" + userId + '\'' +
                 ", openid='" + openid + '\'' +
+                ", studentNumber='" + studentNumber + '\'' +
+                ", teacherNumber='" + teacherNumber + '\'' +
+                ", realName='" + realName + '\'' +
+                ", gender=" + gender +
                 ", userName='" + userName + '\'' +
                 ", userPhone='" + userPhone + '\'' +
                 ", userRole=" + userRole +

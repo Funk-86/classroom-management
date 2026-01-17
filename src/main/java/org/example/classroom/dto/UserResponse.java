@@ -17,6 +17,10 @@ public class UserResponse {
     private String collegeName; // 新增学院名称
     private String classId; // 新增班级ID
     private String className; // 新增班级名称
+    private String studentNumber; // 学号
+    private String teacherNumber; // 教师工号
+    private String realName;      // 真实姓名
+    private Integer gender;       // 性别
 
     // 构造函数
     public UserResponse() {}
@@ -34,6 +38,10 @@ public class UserResponse {
         this.classId = user.getClassId();
         this.collegeName = user.getCollegeName();
         this.className = user.getClassName();
+        this.studentNumber = user.getStudentNumber();
+        this.teacherNumber = user.getTeacherNumber();
+        this.realName = user.getRealName();
+        this.gender = user.getGender();
     }
 
     // Getter和Setter
@@ -75,6 +83,18 @@ public class UserResponse {
 
     public String getClassName() { return className; }
     public void setClassName(String className) { this.className = className; }
+
+    public String getStudentNumber() { return studentNumber; }
+    public void setStudentNumber(String studentNumber) { this.studentNumber = studentNumber; }
+
+    public String getTeacherNumber() { return teacherNumber; }
+    public void setTeacherNumber(String teacherNumber) { this.teacherNumber = teacherNumber; }
+
+    public String getRealName() { return realName; }
+    public void setRealName(String realName) { this.realName = realName; }
+
+    public Integer getGender() { return gender; }
+    public void setGender(Integer gender) { this.gender = gender; }
 
     // 角色名称转换
     private String getRoleName(Integer role) {
