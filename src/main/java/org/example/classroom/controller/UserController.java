@@ -108,8 +108,17 @@ public class UserController {
                 user.setRealName(null);
             }
             user.setGender(userRequest.getGender());
-            // 注意：学号和教师工号在更新时通常不应该修改，但如果需要修改，可以在这里处理
-            // 这里只允许设置，不允许清空（保持原有值）
+            // 处理学号和教师工号（允许修改）
+            if (userRequest.getStudentNumber() != null && !userRequest.getStudentNumber().trim().isEmpty()) {
+                user.setStudentNumber(userRequest.getStudentNumber().trim());
+            } else {
+                user.setStudentNumber(null);
+            }
+            if (userRequest.getTeacherNumber() != null && !userRequest.getTeacherNumber().trim().isEmpty()) {
+                user.setTeacherNumber(userRequest.getTeacherNumber().trim());
+            } else {
+                user.setTeacherNumber(null);
+            }
 
             if (userService.updateById(user)) {
                 // 返回更新后的用户信息
