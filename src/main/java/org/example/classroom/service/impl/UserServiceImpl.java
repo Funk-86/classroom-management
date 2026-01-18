@@ -63,14 +63,24 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             // 根据角色选择不同的登录方式
             if (role != null) {
                 if (role == 0) {
-                    // 学生角色：优先按学号查询，如果找不到再按用户名查询
+                    // 学生角色：优先按学号查询
                     user = baseMapper.selectByStudentNumber(username);
+                    // 如果按学号找不到，尝试通过userId的后6位匹配（学号是从userId后6位提取的）
+                    if (user == null) {
+                        user = findUserByUserIdSuffix(username, 6, role);
+                    }
+                    // 如果还是找不到，按用户名查询
                     if (user == null) {
                         user = baseMapper.selectByUsernameAndRole(username, role);
                     }
                 } else if (role == 1) {
-                    // 教师角色：优先按教师工号查询，如果找不到再按用户名查询
+                    // 教师角色：优先按教师工号查询
                     user = baseMapper.selectByTeacherNumber(username);
+                    // 如果按工号找不到，尝试通过userId的后4位匹配（工号是从userId后4位提取的）
+                    if (user == null) {
+                        user = findUserByUserIdSuffix(username, 4, role);
+                    }
+                    // 如果还是找不到，按用户名查询
                     if (user == null) {
                         user = baseMapper.selectByUsernameAndRole(username, role);
                     }
@@ -476,6 +486,54 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new IllegalArgumentException("Session无效或已过期");
         }
         throw new IllegalArgumentException("无效的token");
+    }
+
+    /**
+     * 通过userId的后N位查找用户（用于支持学号/工号登录）
+     * 学号是userId的后6位，工号是userId的后4位
+     */
+    private User findUserByUserIdSuffix(String suffix, int length, Integer role) {
+        if (suffix == null || suffix.length() == 0) {
+            return null;
+        }
+
+        // 获取所有该角色的用户
+        List<User> users = role != null ? baseMapper.selectUsersByRole(role) : baseMapper.selectAllUsers();
+
+        for (User user : users) {
+            String userId = user.getUserId();
+            if (userId == null || userId.length() == 0) {
+                continue;
+            }
+
+            // 提取userId中的数字部分
+            String digits = userId.replaceAll("[^0-9]", "");
+            if (digits.length() == 0) {
+                // 如果没有数字，使用userId的后N位
+                if (userId.length() >= length) {
+                    String userIdSuffix = userId.substring(userId.length() - length);
+                    if (userIdSuffix.equals(suffix)) {
+                        return user;
+                    }
+                }
+            } else {
+                // 如果有数字，取数字的后N位
+                if (digits.length() >= length) {
+                    String digitsSuffix = digits.substring(digits.length() - length);
+                    if (digitsSuffix.equals(suffix)) {
+                        return user;
+                    }
+                } else {
+                    // 如果数字不足N位，前面补0后比较
+                    String paddedDigits = String.format("%0" + length + "d", Integer.parseInt(digits));
+                    if (paddedDigits.equals(suffix)) {
+                        return user;
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     private static class UserSessionInfo {
