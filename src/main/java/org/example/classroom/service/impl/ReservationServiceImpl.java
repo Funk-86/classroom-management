@@ -19,6 +19,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,6 +41,12 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
 
     @org.springframework.beans.factory.annotation.Autowired
     private BuildingService buildingService;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private UserService userService;
+
+    // 用于执行延迟任务的线程池
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(5);
 
     @Override
     public IPage<Reservation> getAllReservations(Integer page, Integer size, Integer status,
@@ -102,7 +111,94 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         // 设置默认状态为待审核
         reservation.setStatus(0);
         save(reservation);
+
+        // 检查是否需要自动通过：教师预约且用途为"上课"或"会议"
+        checkAndScheduleAutoApproval(reservation);
+
         return reservation;
+    }
+
+    /**
+     * 检查预约是否需要自动通过，如果需要则安排1分钟后的自动审核
+     * 条件：教师预约（user_role = 1）且用途为"上课"或"会议"
+     */
+    private void checkAndScheduleAutoApproval(Reservation reservation) {
+        try {
+            // 获取用户信息
+            User user = userService.getById(reservation.getUserId());
+            if (user == null) {
+                log.warn("无法找到用户信息，预约ID: {}, 用户ID: {}", reservation.getReservationId(), reservation.getUserId());
+                return;
+            }
+
+            // 检查是否为教师（user_role = 1）
+            if (user.getUserRole() == null || user.getUserRole() != 1) {
+                return; // 不是教师，不需要自动通过
+            }
+
+            // 检查用途是否为"上课"或"会议"
+            String purpose = reservation.getPurpose();
+            if (purpose == null) {
+                return;
+            }
+
+            purpose = purpose.trim();
+            boolean isAutoApprovePurpose = purpose.equals("上课") || purpose.equals("会议");
+
+            if (!isAutoApprovePurpose) {
+                return; // 用途不是"上课"或"会议"，不需要自动通过
+            }
+
+            // 安排1分钟后的自动审核任务
+            String reservationId = reservation.getReservationId();
+            log.info("教师预约自动通过任务已安排，预约ID: {}, 用途: {}, 将在1分钟后自动审核", reservationId, purpose);
+
+            scheduler.schedule(() -> {
+                try {
+                    autoApproveReservation(reservationId);
+                } catch (Exception e) {
+                    log.error("自动审核预约失败，预约ID: {}", reservationId, e);
+                }
+            }, 1, TimeUnit.MINUTES);
+
+        } catch (Exception e) {
+            log.error("检查自动通过条件时发生错误，预约ID: {}", reservation.getReservationId(), e);
+        }
+    }
+
+    /**
+     * 自动通过预约（如果预约仍处于待审核状态）
+     */
+    private void autoApproveReservation(String reservationId) {
+        try {
+            Reservation reservation = getById(reservationId);
+            if (reservation == null) {
+                log.warn("预约不存在，无法自动通过，预约ID: {}", reservationId);
+                return;
+            }
+
+            // 检查预约状态是否为待审核（status = 0）
+            if (reservation.getStatus() != 0) {
+                log.info("预约已被管理员处理，无需自动通过，预约ID: {}, 当前状态: {}", reservationId, reservation.getStatus());
+                return;
+            }
+
+            // 自动通过预约
+            reservation.setStatus(1); // 1表示已通过
+            reservation.setApproverId("SYSTEM"); // 系统自动通过
+            reservation.setApproveTime(LocalDateTime.now());
+            reservation.setUpdatedAt(LocalDateTime.now());
+            reservation.setAdminNotes("系统自动通过（教师预约，用途：" + reservation.getPurpose() + "，1分钟内未审核）");
+
+            boolean success = updateById(reservation);
+            if (success) {
+                log.info("预约已自动通过，预约ID: {}, 用途: {}", reservationId, reservation.getPurpose());
+            } else {
+                log.error("自动通过预约失败，预约ID: {}", reservationId);
+            }
+        } catch (Exception e) {
+            log.error("自动通过预约时发生错误，预约ID: {}", reservationId, e);
+        }
     }
 
     /**
