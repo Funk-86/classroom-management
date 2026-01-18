@@ -36,6 +36,7 @@ public class ClassResponse {
         this.collegeId = clazz.getCollegeId();
         this.campusId = clazz.getCampusId();
         this.headTeacherId = clazz.getHeadTeacherId();
+        this.headTeacherName = clazz.getHeadTeacherName();  // 从Class对象中获取班主任名称
         this.grade = clazz.getGrade();
         this.majorName = clazz.getMajorName();
         this.classType = clazz.getClassType();

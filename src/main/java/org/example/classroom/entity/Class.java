@@ -14,6 +14,10 @@ public class Class {
     private String collegeId;
     private String campusId;
     private String headTeacherId;
+
+    @TableField(exist = false)  // 标记为不存在于数据库表中，仅用于查询结果映射
+    private String headTeacherName;  // 班主任名称，通过JOIN查询获取
+
     private String grade;
     private String majorName;
     private Integer classType;
@@ -56,6 +60,9 @@ public class Class {
 
     public String getHeadTeacherId() { return headTeacherId; }
     public void setHeadTeacherId(String headTeacherId) { this.headTeacherId = headTeacherId; }
+
+    public String getHeadTeacherName() { return headTeacherName; }
+    public void setHeadTeacherName(String headTeacherName) { this.headTeacherName = headTeacherName; }
 
     public String getGrade() { return grade; }
     public void setGrade(String grade) { this.grade = grade; }

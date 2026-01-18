@@ -13,10 +13,11 @@ public interface ClassMapper extends BaseMapper<Class> {
     Class selectByClassCode(@Param("classCode") String classCode);
 
     // 查询所有班级（包含学院和校区信息）
-    @Select("SELECT c.*, col.college_name, camp.campus_name " +
+    @Select("SELECT c.*, col.college_name, camp.campus_name, u.user_name as head_teacher_name " +
             "FROM classes c " +
             "LEFT JOIN colleges col ON c.college_id = col.college_id " +
             "LEFT JOIN campuses camp ON c.campus_id = camp.campus_id " +
+            "LEFT JOIN users u ON c.head_teacher_id = u.user_id " +
             "ORDER BY c.created_at DESC")
     List<Class> selectAllClassesWithInfo();
 
