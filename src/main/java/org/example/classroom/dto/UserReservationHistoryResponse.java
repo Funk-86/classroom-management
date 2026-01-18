@@ -1,5 +1,6 @@
 package org.example.classroom.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.LocalDateTime;
@@ -15,6 +16,8 @@ public class UserReservationHistoryResponse {
     private LocalTime endTime;
     private Integer status;
     private String statusText;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private LocalDateTime createdAt;
 
     // 构造函数
