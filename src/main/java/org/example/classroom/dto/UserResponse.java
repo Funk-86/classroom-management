@@ -38,10 +38,44 @@ public class UserResponse {
         this.classId = user.getClassId();
         this.collegeName = user.getCollegeName();
         this.className = user.getClassName();
-        this.studentNumber = user.getStudentNumber();
-        this.teacherNumber = user.getTeacherNumber();
         this.realName = user.getRealName();
         this.gender = user.getGender();
+
+        // 学号：使用用户编号的后6位
+        this.studentNumber = extractFromUserId(user.getUserId(), 6);
+
+        // 工号：使用用户编号的后4位
+        this.teacherNumber = extractFromUserId(user.getUserId(), 4);
+    }
+
+    /**
+     * 从userId中提取后N位
+     * @param userId 用户ID
+     * @param length 提取的长度（学号6位，工号4位）
+     * @return 提取的编号
+     */
+    private String extractFromUserId(String userId, int length) {
+        if (userId == null || userId.length() == 0) {
+            return null;
+        }
+        // 提取userId中的数字部分
+        String digits = userId.replaceAll("[^0-9]", "");
+        if (digits.length() == 0) {
+            // 如果没有数字，直接使用userId的后N位
+            if (userId.length() >= length) {
+                return userId.substring(userId.length() - length);
+            } else {
+                // 如果userId长度不足，前面补0
+                return String.format("%0" + length + "s", userId);
+            }
+        }
+        // 如果有数字，取数字的后N位
+        if (digits.length() >= length) {
+            return digits.substring(digits.length() - length);
+        } else {
+            // 如果数字不足N位，前面补0
+            return String.format("%0" + length + "d", Integer.parseInt(digits));
+        }
     }
 
     // Getter和Setter
