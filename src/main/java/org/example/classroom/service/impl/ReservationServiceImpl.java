@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -47,6 +48,9 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
 
     // 用于执行延迟任务的线程池
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(5);
+
+    // 统一使用北京时间（Asia/Shanghai, GMT+8）
+    private static final ZoneId BEIJING_ZONE = ZoneId.of("Asia/Shanghai");
 
     @Override
     public IPage<Reservation> getAllReservations(Integer page, Integer size, Integer status,
@@ -186,8 +190,8 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
             // 自动通过预约
             reservation.setStatus(1); // 1表示已通过
             reservation.setApproverId("SYSTEM"); // 系统自动通过
-            reservation.setApproveTime(LocalDateTime.now());
-            reservation.setUpdatedAt(LocalDateTime.now());
+            reservation.setApproveTime(LocalDateTime.now(BEIJING_ZONE)); // 使用北京时间
+            reservation.setUpdatedAt(LocalDateTime.now(BEIJING_ZONE)); // 使用北京时间
             reservation.setAdminNotes("系统自动通过（教师预约，用途：" + reservation.getPurpose() + "，1分钟内未审核）");
 
             boolean success = updateById(reservation);
@@ -430,8 +434,8 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         // 更新预约状态
         reservation.setStatus(approvalRequest.getAction()); // 1:通过, 2:拒绝
         reservation.setApproverId(approverId);
-        reservation.setApproveTime(LocalDateTime.now());
-        reservation.setUpdatedAt(LocalDateTime.now());
+        reservation.setApproveTime(LocalDateTime.now(BEIJING_ZONE)); // 使用北京时间
+        reservation.setUpdatedAt(LocalDateTime.now(BEIJING_ZONE)); // 使用北京时间
 
         // 如果是拒绝，设置拒绝原因
         if (approvalRequest.getAction() == 2) {
