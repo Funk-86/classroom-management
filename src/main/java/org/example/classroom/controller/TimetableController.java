@@ -2,7 +2,9 @@ package org.example.classroom.controller;
 
 import org.example.classroom.dto.R;
 import org.example.classroom.entity.CourseSchedule;
+import org.example.classroom.entity.Holiday;
 import org.example.classroom.service.CourseService;
+import org.example.classroom.service.HolidayService;
 import org.example.classroom.util.WeekCalculator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +20,9 @@ public class TimetableController {
 
     @Autowired
     private CourseService courseService;
+
+    @Autowired
+    private HolidayService holidayService;
 
     // 获取学生个人课表
     @GetMapping("/student")
@@ -473,7 +478,17 @@ public class TimetableController {
     @GetMapping("/current-week")
     public R getCurrentWeekInfo() {
         try {
+            LocalDate today = LocalDate.now();
             boolean isInSemester = WeekCalculator.isCurrentDateInSemester();
+
+            // 检查是否在假期中
+            boolean isInHoliday = isDateInHoliday(today);
+
+            // 如果在假期中，则认为不在学期中
+            if (isInHoliday) {
+                isInSemester = false;
+            }
+
             int currentWeek = courseService.getCurrentWeek();
             WeekCalculator.AcademicYearSemester academicYearSemester = courseService.getCurrentAcademicYearSemester();
             WeekCalculator.WeekDateRange weekRange = WeekCalculator.getDateRangeByWeek(currentWeek);
@@ -484,13 +499,44 @@ public class TimetableController {
                     "semester", academicYearSemester.getSemester(),
                     "weekStartDate", weekRange.getStartDate(),
                     "weekEndDate", weekRange.getEndDate(),
-                    "currentDate", LocalDate.now(),
-                    "semesterEnded", !isInSemester
+                    "currentDate", today,
+                    "semesterEnded", !isInSemester,
+                    "isInHoliday", isInHoliday
             );
 
             return R.ok().put("data", result);
         } catch (Exception e) {
             return R.error("获取周次信息失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 检查指定日期是否在假期中
+     * @param date 要检查的日期
+     * @return 如果在假期中返回true，否则返回false
+     */
+    private boolean isDateInHoliday(LocalDate date) {
+        try {
+            // 查询所有有效的假期（status = 1）
+            List<Holiday> holidays = holidayService.list(
+                    new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<Holiday>()
+                            .eq("status", 1)
+            );
+
+            // 检查日期是否在任何一个假期范围内
+            for (Holiday holiday : holidays) {
+                if (holiday.getStartDate() != null && holiday.getEndDate() != null) {
+                    // 检查日期是否在假期范围内（包含起止日期）
+                    if (!date.isBefore(holiday.getStartDate()) && !date.isAfter(holiday.getEndDate())) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        } catch (Exception e) {
+            // 如果查询假期失败，记录日志但不影响功能
+            System.err.println("检查假期状态时发生错误: " + e.getMessage());
+            return false;
         }
     }
 
@@ -517,17 +563,25 @@ public class TimetableController {
     public R getClassTimetableByWeek(@RequestParam String classId,
                                      @RequestParam(required = false) Integer week) {
         try {
-            // 检查当前日期是否在学期内
-            if (!WeekCalculator.isCurrentDateInSemester()) {
+            LocalDate today = LocalDate.now();
+            boolean isInSemester = WeekCalculator.isCurrentDateInSemester();
+
+            // 检查是否在假期中
+            boolean isInHoliday = isDateInHoliday(today);
+
+            // 如果在假期中或不在学期内，返回假期/学期结束状态
+            if (!isInSemester || isInHoliday) {
                 WeekCalculator.AcademicYearSemester academicYearSemester = courseService.getCurrentAcademicYearSemester();
+                String message = isInHoliday ? "当前在假期中" : "当前学期已结束";
                 Map<String, Object> result = Map.of(
                         "weekNumber", 0,
                         "timetable", new java.util.HashMap<>(),
-                        "weekStartDate", LocalDate.now(),
-                        "weekEndDate", LocalDate.now(),
+                        "weekStartDate", today,
+                        "weekEndDate", today,
                         "classId", classId,
                         "semesterEnded", true,
-                        "message", "当前学期已结束"
+                        "isInHoliday", isInHoliday,
+                        "message", message
                 );
                 return R.ok().put("data", result);
             }
