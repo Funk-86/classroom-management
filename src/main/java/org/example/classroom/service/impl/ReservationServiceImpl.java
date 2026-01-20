@@ -128,33 +128,43 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
      */
     private void checkAndScheduleAutoApproval(Reservation reservation) {
         try {
+            String reservationId = reservation.getReservationId();
+            String userId = reservation.getUserId();
+            String purpose = reservation.getPurpose();
+
+            log.info("开始检查自动通过条件，预约ID: {}, 用户ID: {}, 用途: {}", reservationId, userId, purpose);
+
             // 获取用户信息
-            User user = userService.getById(reservation.getUserId());
+            User user = userService.getById(userId);
             if (user == null) {
-                log.warn("无法找到用户信息，预约ID: {}, 用户ID: {}", reservation.getReservationId(), reservation.getUserId());
+                log.warn("无法找到用户信息，预约ID: {}, 用户ID: {}", reservationId, userId);
                 return;
             }
 
             // 检查是否为教师（user_role = 1）
-            if (user.getUserRole() == null || user.getUserRole() != 1) {
+            Integer userRole = user.getUserRole();
+            log.info("用户角色检查，预约ID: {}, 用户ID: {}, 用户角色: {}", reservationId, userId, userRole);
+            if (userRole == null || userRole != 1) {
+                log.info("用户不是教师，不安排自动通过，预约ID: {}, 用户角色: {}", reservationId, userRole);
                 return; // 不是教师，不需要自动通过
             }
 
             // 检查用途是否为"上课"或"会议"
-            String purpose = reservation.getPurpose();
             if (purpose == null) {
+                log.warn("预约用途为空，不安排自动通过，预约ID: {}", reservationId);
                 return;
             }
 
             purpose = purpose.trim();
             boolean isAutoApprovePurpose = purpose.equals("上课") || purpose.equals("会议");
+            log.info("用途检查，预约ID: {}, 用途: [{}], 是否匹配: {}", reservationId, purpose, isAutoApprovePurpose);
 
             if (!isAutoApprovePurpose) {
+                log.info("用途不是'上课'或'会议'，不安排自动通过，预约ID: {}, 用途: [{}]", reservationId, purpose);
                 return; // 用途不是"上课"或"会议"，不需要自动通过
             }
 
             // 安排1分钟后的自动审核任务
-            String reservationId = reservation.getReservationId();
             log.info("教师预约自动通过任务已安排，预约ID: {}, 用途: {}, 将在1分钟后自动审核", reservationId, purpose);
 
             scheduler.schedule(() -> {
