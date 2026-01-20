@@ -202,7 +202,8 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
             reservation.setApproverId("SYSTEM"); // 系统自动通过
             reservation.setApproveTime(LocalDateTime.now(BEIJING_ZONE)); // 使用北京时间
             reservation.setUpdatedAt(LocalDateTime.now(BEIJING_ZONE)); // 使用北京时间
-            reservation.setAdminNotes("系统自动通过（教师预约，用途：" + reservation.getPurpose() + "，1分钟内未审核）");
+            // 自动填写审核备注为“通过”，并保留说明
+            reservation.setAdminNotes("通过（系统自动通过，教师预约，用途：" + reservation.getPurpose() + "，1分钟内未审核）");
 
             boolean success = updateById(reservation);
             if (success) {
