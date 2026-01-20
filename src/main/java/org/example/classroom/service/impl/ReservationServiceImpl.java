@@ -199,7 +199,8 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
 
             // 自动通过预约
             reservation.setStatus(1); // 1表示已通过
-            reservation.setApproverId("SYSTEM"); // 系统自动通过
+            // 外键约束导致失败时，优先写 null（允许外键为空即可通过）
+            reservation.setApproverId(null);
             reservation.setApproveTime(LocalDateTime.now(BEIJING_ZONE)); // 使用北京时间
             reservation.setUpdatedAt(LocalDateTime.now(BEIJING_ZONE)); // 使用北京时间
             // 自动填写审核备注为“通过”，并保留说明
