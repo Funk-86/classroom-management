@@ -563,7 +563,7 @@ public class UserController {
 
             // 保存到服务器本地目录（根据实际部署环境调整）
             // 这里使用相对路径 user-avatars，建议在部署时配置为静态资源目录
-            Path uploadDir = Paths.get("user-avatars");
+            Path uploadDir = Paths.get("user_image");
             if (!Files.exists(uploadDir)) {
                 Files.createDirectories(uploadDir);
             }
@@ -581,7 +581,7 @@ public class UserController {
 
             // 生成对外访问路径（前端直接作为 <image src> 使用）
             // 这里返回相对路径，前端自行拼接域名，例如 https://xxx.com + avatarUrl
-            String avatarUrl = "/user-avatars/" + fileName;
+            String avatarUrl = "/user_image/" + fileName;
 
             // 更新数据库中的头像地址
             user.setUserAvatar(avatarUrl);
