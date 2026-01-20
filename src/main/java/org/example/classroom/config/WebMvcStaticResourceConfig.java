@@ -15,10 +15,12 @@ public class WebMvcStaticResourceConfig implements WebMvcConfigurer {
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         // 将 /user_image/** 映射到项目运行目录下的 user_image 文件夹
         // 使用绝对路径，基于项目运行目录
+        // 注意：由于应用上下文是 /api，实际访问路径是 /api/user_image/**
         String baseDir = System.getProperty("user.dir");
         String uploadPath = baseDir + "/user_image/";
         registry.addResourceHandler("/user_image/**")
-                .addResourceLocations("file:" + uploadPath);
+                .addResourceLocations("file:" + uploadPath)
+                .setCachePeriod(3600); // 设置缓存时间（秒）
     }
 }
 

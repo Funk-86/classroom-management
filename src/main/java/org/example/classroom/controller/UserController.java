@@ -566,9 +566,12 @@ public class UserController {
             String baseDir = System.getProperty("user.dir");
             Path uploadDir = Paths.get(baseDir, "user_image");
 
+            log.info("上传头像 - 用户ID: {}, 保存目录: {}", userId, uploadDir.toAbsolutePath());
+
             // 确保目录存在
             if (!Files.exists(uploadDir)) {
                 Files.createDirectories(uploadDir);
+                log.info("创建头像目录: {}", uploadDir.toAbsolutePath());
             }
 
             // 使用用户ID + 时间戳作为文件名，避免冲突
@@ -580,14 +583,26 @@ public class UserController {
             String fileName = userId + "_" + System.currentTimeMillis() + extension;
             Path targetPath = uploadDir.resolve(fileName);
 
+            log.info("保存头像文件到: {}", targetPath.toAbsolutePath());
+
             // 确保父目录存在
             Files.createDirectories(targetPath.getParent());
 
             // 保存文件
             file.transferTo(targetPath.toFile());
 
+            // 验证文件是否保存成功
+            if (Files.exists(targetPath)) {
+                log.info("头像文件保存成功，文件大小: {} bytes", Files.size(targetPath));
+            } else {
+                log.error("头像文件保存失败，文件不存在: {}", targetPath.toAbsolutePath());
+                return R.error("头像文件保存失败");
+            }
+
             // 生成对外访问路径（前端直接作为 <image src> 使用）
-            // 这里返回相对路径，前端自行拼接域名，例如 https://xxx.com + avatarUrl
+            // 返回相对路径 /user_image/xxx.png
+            // 前端会拼接 baseUrl（如 /api/api）变成 /api/api/user_image/xxx.png
+            // 反向代理会转发到后端的 /api/user_image/xxx.png（因为 context-path 是 /api）
             String avatarUrl = "/user_image/" + fileName;
 
             // 更新数据库中的头像地址
