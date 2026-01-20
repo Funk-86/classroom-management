@@ -561,9 +561,12 @@ public class UserController {
                 return R.error(401, "未登录或用户不存在");
             }
 
-            // 保存到服务器本地目录（根据实际部署环境调整）
-            // 这里使用相对路径 user-avatars，建议在部署时配置为静态资源目录
-            Path uploadDir = Paths.get("user_image");
+            // 保存到服务器本地目录（使用绝对路径，基于项目运行目录）
+            // 获取项目运行目录，如果不存在则使用用户目录
+            String baseDir = System.getProperty("user.dir");
+            Path uploadDir = Paths.get(baseDir, "user_image");
+
+            // 确保目录存在
             if (!Files.exists(uploadDir)) {
                 Files.createDirectories(uploadDir);
             }
@@ -577,6 +580,10 @@ public class UserController {
             String fileName = userId + "_" + System.currentTimeMillis() + extension;
             Path targetPath = uploadDir.resolve(fileName);
 
+            // 确保父目录存在
+            Files.createDirectories(targetPath.getParent());
+
+            // 保存文件
             file.transferTo(targetPath.toFile());
 
             // 生成对外访问路径（前端直接作为 <image src> 使用）

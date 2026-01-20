@@ -14,9 +14,11 @@ public class WebMvcStaticResourceConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         // 将 /user_image/** 映射到项目运行目录下的 user_image 文件夹
-        // 如有需要，可将 "file:user_image/" 换成绝对路径，例如 "file:/opt/classroom/user_image/"
+        // 使用绝对路径，基于项目运行目录
+        String baseDir = System.getProperty("user.dir");
+        String uploadPath = baseDir + "/user_image/";
         registry.addResourceHandler("/user_image/**")
-                .addResourceLocations("file:user_image/");
+                .addResourceLocations("file:" + uploadPath);
     }
 }
 
