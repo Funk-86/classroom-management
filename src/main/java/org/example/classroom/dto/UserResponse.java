@@ -30,7 +30,8 @@ public class UserResponse {
         this.userName = user.getUserName();
         this.userPhone = user.getUserPhone();
         this.userRole = user.getUserRole();
-        this.userAvatar = user.getUserAvatar() != null ? user.getUserAvatar() : "/static/avatars/default.png";
+        // 统一默认头像路径为小程序内置的 /pages/static/user_image/user.png
+        this.userAvatar = user.getUserAvatar() != null ? user.getUserAvatar() : "/pages/static/user_image/user.png";
         this.roleName = getRoleName(user.getUserRole());
         this.createdAt = user.getCreatedAt();
         this.updatedAt = user.getUpdatedAt();
