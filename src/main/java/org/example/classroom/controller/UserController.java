@@ -12,7 +12,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -534,6 +539,61 @@ public class UserController {
             return R.ok().put("data", userResponses).put("total", users.size());
         } catch (Exception e) {
             return R.error(401, "未登录或token无效");
+        }
+    }
+
+    /**
+     * 上传并更新当前用户头像
+     * 小程序通过 wx.uploadFile 调用该接口
+     */
+    @PostMapping("/avatar")
+    public R uploadAvatar(@RequestHeader(value = "Authorization", required = false) String token,
+                          @RequestPart("file") MultipartFile file) {
+        try {
+            if (file == null || file.isEmpty()) {
+                return R.error(400, "上传文件不能为空");
+            }
+
+            // 从 token 中获取当前用户
+            String userId = tokenUtils.extractUserIdFromToken(token);
+            User user = userService.getById(userId);
+            if (user == null) {
+                return R.error(401, "未登录或用户不存在");
+            }
+
+            // 保存到服务器本地目录（根据实际部署环境调整）
+            // 这里使用相对路径 user-avatars，建议在部署时配置为静态资源目录
+            Path uploadDir = Paths.get("user-avatars");
+            if (!Files.exists(uploadDir)) {
+                Files.createDirectories(uploadDir);
+            }
+
+            // 使用用户ID + 时间戳作为文件名，避免冲突
+            String originalFilename = file.getOriginalFilename();
+            String extension = "";
+            if (originalFilename != null && originalFilename.lastIndexOf('.') != -1) {
+                extension = originalFilename.substring(originalFilename.lastIndexOf('.'));
+            }
+            String fileName = userId + "_" + System.currentTimeMillis() + extension;
+            Path targetPath = uploadDir.resolve(fileName);
+
+            file.transferTo(targetPath.toFile());
+
+            // 生成对外访问路径（前端直接作为 <image src> 使用）
+            // 这里返回相对路径，前端自行拼接域名，例如 https://xxx.com + avatarUrl
+            String avatarUrl = "/user-avatars/" + fileName;
+
+            // 更新数据库中的头像地址
+            user.setUserAvatar(avatarUrl);
+            userService.updateById(user);
+
+            return R.ok("头像上传成功").put("data", avatarUrl);
+        } catch (IOException e) {
+            log.error("保存头像文件失败", e);
+            return R.error("保存头像文件失败: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("上传头像时发生错误", e);
+            return R.error("上传头像失败: " + e.getMessage());
         }
     }
 }
