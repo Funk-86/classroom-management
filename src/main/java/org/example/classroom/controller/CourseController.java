@@ -1,5 +1,6 @@
 package org.example.classroom.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import jakarta.servlet.http.HttpServletRequest;
 import org.example.classroom.dto.R;
 import org.example.classroom.entity.Course;
@@ -32,6 +33,9 @@ public class CourseController {
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private org.example.classroom.service.SemesterService semesterService;
 
     // 获取课程列表
     @GetMapping("/list")
@@ -250,11 +254,80 @@ public class CourseController {
                 return R.ok().put("data", schedules);
             }
 
-            // 如果提供了semesterId和week，通过学期查询
-            if (semesterId != null && !semesterId.trim().isEmpty() && week != null) {
-                // 通过学期ID获取课程，然后查询这些课程的安排
-                // 这里需要根据实际业务逻辑实现
-                // 暂时使用通用查询
+            // 如果提供了semesterId，通过学期查询
+            if (semesterId != null && !semesterId.trim().isEmpty()) {
+                // 获取学期信息
+                org.example.classroom.entity.Semester semester = semesterService.getById(semesterId);
+                if (semester == null) {
+                    return R.error("学期不存在");
+                }
+
+                // 从学期名称中提取学期类型（1=春季，2=秋季）
+                Integer semesterType = null;
+                if (semester.getName() != null) {
+                    String name = semester.getName();
+                    // 支持多种格式：春季、秋季、春季学期、秋季学期等
+                    if (name.contains("春季") || name.contains("春")) {
+                        semesterType = 1;
+                    } else if (name.contains("秋季") || name.contains("秋")) {
+                        semesterType = 2;
+                    }
+                }
+                // lambda 中使用的变量需要是 final / effectively final，这里做一次拷贝
+                final Integer semesterTypeFinal = semesterType;
+
+                // 根据学期信息（academicYear 和 semester）过滤课程安排
+                // 先查询所有课程安排，然后过滤出属于该学期的课程
+                // 使用较大的分页大小来获取所有数据，然后手动过滤
+                IPage<CourseSchedule> allSchedules = courseService.getSchedulesWithDetail(
+                        courseId, classroomId, campusId, dayOfWeek, scheduleType, start, end, 1, 10000);
+
+                // 过滤出属于指定学期的课程安排
+                List<CourseSchedule> filteredSchedules = allSchedules.getRecords().stream()
+                        .filter(schedule -> {
+                            // 通过 courseId 获取课程信息
+                            Course course = courseService.getById(schedule.getCourseId());
+                            if (course == null) {
+                                return false;
+                            }
+
+                            // 检查课程的学年和学期是否匹配
+                            boolean yearMatch = semester.getAcademicYear() != null &&
+                                    semester.getAcademicYear().equals(course.getAcademicYear());
+                            boolean semesterMatch = semesterTypeFinal != null &&
+                                    semesterTypeFinal.equals(course.getSemester());
+
+                            return yearMatch && semesterMatch;
+                        })
+                        .collect(java.util.stream.Collectors.toList());
+
+                // 如果指定了周次，进一步过滤
+                if (week != null && week > 0) {
+                    filteredSchedules = filteredSchedules.stream()
+                            .filter(schedule -> {
+                                if (schedule.getScheduleType() != null && schedule.getScheduleType() == 0) {
+                                    // 每周重复的课程，检查周次范围
+                                    Integer startWeek = schedule.getStartWeek();
+                                    Integer endWeek = schedule.getEndWeek();
+                                    return startWeek != null && endWeek != null &&
+                                            week >= startWeek && week <= endWeek;
+                                } else if (schedule.getScheduleType() != null && schedule.getScheduleType() == 1) {
+                                    // 单次安排的课程，需要根据日期计算周次
+                                    // 这里简化处理，如果指定了周次，单次安排需要根据日期判断
+                                    return true; // 暂时返回true，可以根据需要进一步实现
+                                }
+                                return true;
+                            })
+                            .collect(java.util.stream.Collectors.toList());
+                }
+
+                // 创建分页结果
+                com.baomidou.mybatisplus.extension.plugins.pagination.Page<CourseSchedule> resultPage =
+                        new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(page, size);
+                resultPage.setRecords(filteredSchedules);
+                resultPage.setTotal(filteredSchedules.size());
+
+                return R.ok().put("data", resultPage);
             }
 
             return R.ok().put("data", courseService.getSchedulesWithDetail(courseId, classroomId, campusId,
