@@ -20,6 +20,7 @@ public class CourseSchedule {
     private Integer scheduleType;
     private Integer startWeek;
     private Integer endWeek;
+    private String semesterId; // 学期ID
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
@@ -91,6 +92,9 @@ public class CourseSchedule {
 
     public Integer getEndWeek() { return endWeek; }
     public void setEndWeek(Integer endWeek) { this.endWeek = endWeek; }
+
+    public String getSemesterId() { return semesterId; }
+    public void setSemesterId(String semesterId) { this.semesterId = semesterId; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

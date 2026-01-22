@@ -5,16 +5,8 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.example.classroom.controller.CourseController;
-import org.example.classroom.entity.Course;
-import org.example.classroom.entity.CourseSchedule;
-import org.example.classroom.entity.StudentCourse;
-import org.example.classroom.entity.User;
-import org.example.classroom.mapper.CourseMapper;
-import org.example.classroom.mapper.CourseScheduleMapper;
-import org.example.classroom.mapper.StudentCourseMapper;
-import org.example.classroom.mapper.UserMapper;
-import org.example.classroom.mapper.CourseClassMapper;
-import org.example.classroom.entity.CourseClass;
+import org.example.classroom.entity.*;
+import org.example.classroom.mapper.*;
 import org.example.classroom.service.CourseService;
 import org.example.classroom.util.WeekCalculator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +20,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -184,6 +175,14 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
             if (classroom == null) {
                 throw new RuntimeException("教室ID " + schedule.getClassroomId() + " 不存在，请检查教室ID是否正确");
             }
+        }
+
+        // 验证semesterId是否设置
+        if (schedule.getSemesterId() == null || schedule.getSemesterId().trim().isEmpty()) {
+            System.out.println("警告：课程安排的semesterId为空，courseId=" + schedule.getCourseId());
+            // 如果前端没有传递semesterId，保持为null（允许为空，但建议前端传递）
+        } else {
+            System.out.println("课程安排semesterId已设置: " + schedule.getSemesterId() + ", courseId=" + schedule.getCourseId());
         }
 
         // 使用统一的教室占用冲突检测
