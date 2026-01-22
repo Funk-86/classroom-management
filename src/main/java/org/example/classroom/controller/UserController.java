@@ -561,9 +561,13 @@ public class UserController {
                 return R.error(401, "未登录或用户不存在");
             }
 
-            // 保存到服务器本地目录（使用绝对路径，基于项目运行目录）
-            // 获取项目运行目录，如果不存在则使用用户目录
-            String baseDir = System.getProperty("user.dir");
+            // 保存到服务器本地目录
+            // 优先使用环境变量配置的持久化存储路径，如果没有则使用项目运行目录
+            // 在云服务器上，建议设置 UPLOAD_DIR 环境变量指向持久化存储目录
+            String baseDir = System.getenv("UPLOAD_DIR");
+            if (baseDir == null || baseDir.trim().isEmpty()) {
+                baseDir = System.getProperty("user.dir");
+            }
             Path uploadDir = Paths.get(baseDir, "user_image");
 
             log.info("上传头像 - 用户ID: {}, 保存目录: {}", userId, uploadDir.toAbsolutePath());
@@ -607,7 +611,19 @@ public class UserController {
 
             // 更新数据库中的头像地址
             user.setUserAvatar(avatarUrl);
-            userService.updateById(user);
+            boolean updateSuccess = userService.updateById(user);
+
+            if (updateSuccess) {
+                log.info("数据库头像路径更新成功: userId={}, avatarUrl={}", userId, avatarUrl);
+                // 验证数据库中的值
+                User updatedUser = userService.getById(userId);
+                if (updatedUser != null) {
+                    log.info("验证数据库中的头像路径: {}", updatedUser.getUserAvatar());
+                }
+            } else {
+                log.error("数据库头像路径更新失败: userId={}, avatarUrl={}", userId, avatarUrl);
+                return R.error("头像路径保存到数据库失败");
+            }
 
             return R.ok("头像上传成功").put("data", avatarUrl);
         } catch (IOException e) {

@@ -13,9 +13,13 @@ public class WebMvcStaticResourceConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 将 /user_image/** 映射到项目运行目录下的 user_image 文件夹
-        // 使用绝对路径，基于项目运行目录
-        String baseDir = System.getProperty("user.dir");
+        // 将 /user_image/** 映射到持久化存储目录下的 user_image 文件夹
+        // 优先使用环境变量配置的持久化存储路径，如果没有则使用项目运行目录
+        // 在云服务器上，建议设置 UPLOAD_DIR 环境变量指向持久化存储目录
+        String baseDir = System.getenv("UPLOAD_DIR");
+        if (baseDir == null || baseDir.trim().isEmpty()) {
+            baseDir = System.getProperty("user.dir");
+        }
         String uploadPath = baseDir + "/user_image/";
 
         // 1）后端本地直接访问 /api/user_image/** （context-path=/api）
