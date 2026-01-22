@@ -2,22 +2,14 @@ package org.example.classroom.service.impl;
 
 import org.example.classroom.dto.ClassroomConflictResult;
 import org.example.classroom.dto.ClassroomOccupationInfo;
-import org.example.classroom.entity.AttendanceSession;
-import org.example.classroom.entity.CourseSchedule;
-import org.example.classroom.entity.Reservation;
-import org.example.classroom.entity.Course;
-import org.example.classroom.entity.AttendanceRecord;
-import org.example.classroom.mapper.AttendanceSessionMapper;
-import org.example.classroom.mapper.AttendanceRecordMapper;
-import org.example.classroom.mapper.CourseMapper;
-import org.example.classroom.mapper.CourseScheduleMapper;
-import org.example.classroom.mapper.ReservationMapper;
-import org.example.classroom.service.ClassroomOccupationService;
 import org.example.classroom.dto.ClassroomRealtimeResponse;
 import org.example.classroom.dto.ClassroomRealtimeResponse.AttendanceSummary;
 import org.example.classroom.dto.ClassroomRealtimeResponse.CurrentCourse;
 import org.example.classroom.dto.ClassroomRealtimeResponse.CurrentReservation;
 import org.example.classroom.dto.ClassroomRealtimeResponse.StudentLite;
+import org.example.classroom.entity.*;
+import org.example.classroom.mapper.*;
+import org.example.classroom.service.ClassroomOccupationService;
 import org.example.classroom.util.WeekCalculator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -25,7 +17,6 @@ import org.springframework.stereotype.Service;
 import java.sql.Date;
 import java.sql.Time;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -231,7 +222,8 @@ public class ClassroomOccupationServiceImpl implements ClassroomOccupationServic
             int weekNumber = WeekCalculator.getWeekNumber(date);
             WeekCalculator.WeekDateRange weekRange = WeekCalculator.getDateRangeByWeek(weekNumber);
             List<CourseSchedule> weekly = courseScheduleMapper.selectSchedulesByClassAndWeek(
-                    null,
+                    null, // classId，这里查询所有班级
+                    null, // semesterId，这里不按学期过滤
                     weekNumber,
                     weekRange.getStartDate(),
                     weekRange.getEndDate()

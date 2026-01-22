@@ -250,45 +250,15 @@ public class CourseController {
                     // 如果没有week参数或week为0，使用当前周次
                     weekNumber = courseService.getCurrentWeek();
                 }
-                List<CourseSchedule> schedules = courseService.getClassTimetableByWeek(classId, weekNumber);
 
-                // 如果同时提供了semesterId，需要根据学期过滤
+                // 如果提供了semesterId，使用带学期过滤的查询方法
+                List<CourseSchedule> schedules;
                 if (semesterId != null && !semesterId.trim().isEmpty()) {
-                    // 获取学期信息
-                    org.example.classroom.entity.Semester semester = semesterService.getById(semesterId);
-                    if (semester != null) {
-                        // 从学期名称中提取学期类型（1=春季，2=秋季）
-                        Integer semesterType = null;
-                        if (semester.getName() != null) {
-                            String name = semester.getName();
-                            // 支持多种格式：春季、秋季、春季学期、秋季学期等
-                            if (name.contains("春季") || name.contains("春")) {
-                                semesterType = 1;
-                            } else if (name.contains("秋季") || name.contains("秋")) {
-                                semesterType = 2;
-                            }
-                        }
-                        final Integer semesterTypeFinal = semesterType;
-
-                        // 过滤出属于指定学期的课程安排
-                        schedules = schedules.stream()
-                                .filter(schedule -> {
-                                    // 通过 courseId 获取课程信息
-                                    Course course = courseService.getById(schedule.getCourseId());
-                                    if (course == null) {
-                                        return false;
-                                    }
-
-                                    // 检查课程的学年和学期是否匹配
-                                    boolean yearMatch = semester.getAcademicYear() != null &&
-                                            semester.getAcademicYear().equals(course.getAcademicYear());
-                                    boolean semesterMatch = semesterTypeFinal != null &&
-                                            semesterTypeFinal.equals(course.getSemester());
-
-                                    return yearMatch && semesterMatch;
-                                })
-                                .collect(java.util.stream.Collectors.toList());
-                    }
+                    // 使用SQL层面的semester_id过滤，更高效
+                    schedules = courseService.getClassTimetableByWeekAndSemester(classId, semesterId, weekNumber);
+                } else {
+                    // 如果没有提供semesterId，使用原来的方法
+                    schedules = courseService.getClassTimetableByWeek(classId, weekNumber);
                 }
 
                 return R.ok().put("data", schedules);

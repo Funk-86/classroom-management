@@ -11,7 +11,6 @@ import org.example.classroom.util.WeekCalculator;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 
 public interface CourseService extends IService<Course> {
 
@@ -106,6 +105,9 @@ public interface CourseService extends IService<Course> {
 
     // 新增：根据周次获取班级课表
     List<CourseSchedule> getClassTimetableByWeek(String classId, int weekNumber);
+
+    // 新增：根据班级、学期和周次获取课表
+    List<CourseSchedule> getClassTimetableByWeekAndSemester(String classId, String semesterId, int weekNumber);
 
     // 新增：根据周次获取教室课表
     List<CourseSchedule> getClassroomTimetableByWeek(String classroomId, int weekNumber);

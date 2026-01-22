@@ -104,7 +104,8 @@ public interface CourseScheduleMapper extends BaseMapper<CourseSchedule> {
     @Select("<script>" +
             "SELECT DISTINCT cs.schedule_id, cs.course_id, cs.classroom_id, cs.campus_id, " +
             "cs.day_of_week, cs.start_time, cs.end_time, cs.schedule_date, " +
-            "cs.schedule_type, cs.start_week, cs.end_week, cs.created_at, cs.updated_at, " +
+            "cs.schedule_type, cs.start_week, cs.end_week, cs.semester_id, " +
+            "cs.created_at, cs.updated_at, " +
             "c.course_name AS courseName, " +
             "c.course_code AS courseCode, " +
             "c.course_type AS courseType, " +
@@ -129,6 +130,9 @@ public interface CourseScheduleMapper extends BaseMapper<CourseSchedule> {
             "  ) " +
             ") " +
             "</if>" +
+            "<if test='semesterId != null and semesterId != \"\"'> " +
+            "AND cs.semester_id = #{semesterId} " +
+            "</if>" +
             "<if test='weekNumber != null'> " +
             "AND ((cs.schedule_type = 0 AND #{weekNumber} BETWEEN cs.start_week AND cs.end_week) " +
             "OR (cs.schedule_type = 1 AND cs.schedule_date BETWEEN #{startDate} AND #{endDate})) " +
@@ -136,6 +140,7 @@ public interface CourseScheduleMapper extends BaseMapper<CourseSchedule> {
             "ORDER BY cs.day_of_week, cs.start_time" +
             "</script>")
     List<CourseSchedule> selectSchedulesByClassAndWeek(@Param("classId") String classId,
+                                                       @Param("semesterId") String semesterId,
                                                        @Param("weekNumber") Integer weekNumber,
                                                        @Param("startDate") LocalDate startDate,
                                                        @Param("endDate") LocalDate endDate);

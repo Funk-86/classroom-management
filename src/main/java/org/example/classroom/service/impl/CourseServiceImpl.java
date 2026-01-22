@@ -638,6 +638,20 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
 
         return courseScheduleMapper.selectSchedulesByClassAndWeek(
                 classId,
+                null, // semesterId，如果需要可以添加参数
+                weekNumber,
+                weekRange.getStartDate(),
+                weekRange.getEndDate()
+        );
+    }
+
+    // 新增：根据班级、学期和周次获取课表
+    public List<CourseSchedule> getClassTimetableByWeekAndSemester(String classId, String semesterId, int weekNumber) {
+        WeekCalculator.WeekDateRange weekRange = WeekCalculator.getDateRangeByWeek(weekNumber);
+
+        return courseScheduleMapper.selectSchedulesByClassAndWeek(
+                classId,
+                semesterId,
                 weekNumber,
                 weekRange.getStartDate(),
                 weekRange.getEndDate()
