@@ -6,6 +6,8 @@ import org.example.classroom.entity.Holiday;
 import org.example.classroom.service.CourseService;
 import org.example.classroom.service.HolidayService;
 import org.example.classroom.util.WeekCalculator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,6 +19,8 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/timetable")
 public class TimetableController {
+
+    private static final Logger log = LoggerFactory.getLogger(TimetableController.class);
 
     @Autowired
     private CourseService courseService;
@@ -535,7 +539,7 @@ public class TimetableController {
             return false;
         } catch (Exception e) {
             // 如果查询假期失败，记录日志但不影响功能
-            System.err.println("检查假期状态时发生错误: " + e.getMessage());
+            log.error("检查假期状态时发生错误: {}", e.getMessage(), e);
             return false;
         }
     }

@@ -6,6 +6,8 @@ import org.example.classroom.entity.AttendanceSession;
 import org.example.classroom.mapper.AttendanceRecordMapper;
 import org.example.classroom.mapper.AttendanceSessionMapper;
 import org.example.classroom.service.AttendanceService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +21,8 @@ import java.util.List;
 
 @Service
 public class AttendanceServiceImpl extends ServiceImpl<AttendanceSessionMapper, AttendanceSession> implements AttendanceService {
+
+    private static final Logger log = LoggerFactory.getLogger(AttendanceServiceImpl.class);
 
     @Autowired
     private AttendanceSessionMapper sessionMapper;
@@ -114,17 +118,17 @@ public class AttendanceServiceImpl extends ServiceImpl<AttendanceSessionMapper, 
         List<AttendanceSession> allActiveSessions = sessionMapper.selectActiveSessionsForStudentWithoutTimeCheck(studentId);
 
         if (allActiveSessions == null || allActiveSessions.isEmpty()) {
-            System.out.println("未找到学生 " + studentId + " 的签到活动（状态为1）");
+            log.debug("未找到学生 {} 的签到活动（状态为1）", studentId);
             return java.util.Collections.emptyList();
         }
 
-        System.out.println("找到 " + allActiveSessions.size() + " 个进行中的签到活动（状态为1）");
+        log.debug("找到 {} 个进行中的签到活动（状态为1）", allActiveSessions.size());
 
         // 获取当前时间（东八区）
         ZoneId shanghaiZone = ZoneId.of("Asia/Shanghai");
         LocalDateTime now = ZonedDateTime.now(shanghaiZone).toLocalDateTime();
 
-        System.out.println("当前时间（东八区）: " + now);
+        log.debug("当前时间（东八区）: {}", now);
 
         // 获取学生已签到的活动ID列表
         List<String> checkedInSessionIds = recordMapper.selectList(
@@ -136,19 +140,19 @@ public class AttendanceServiceImpl extends ServiceImpl<AttendanceSessionMapper, 
                 .distinct()
                 .collect(java.util.stream.Collectors.toList());
 
-        System.out.println("学生已签到的活动ID: " + checkedInSessionIds);
+        log.debug("学生已签到的活动ID: {}", checkedInSessionIds);
 
         // 过滤出当前时间在签到时间范围内且未签到的活动
         List<AttendanceSession> activeSessions = allActiveSessions.stream()
                 .filter(session -> {
                     // 检查是否已签到
                     if (checkedInSessionIds.contains(session.getSessionId())) {
-                        System.out.println("签到活动 " + session.getSessionId() + " 已签到，跳过");
+                        log.debug("签到活动 {} 已签到，跳过", session.getSessionId());
                         return false;
                     }
 
                     if (session.getStartTime() == null || session.getEndTime() == null) {
-                        System.out.println("签到活动 " + session.getSessionId() + " 的时间为空");
+                        log.debug("签到活动 {} 的时间为空", session.getSessionId());
                         return false;
                     }
 
@@ -159,14 +163,14 @@ public class AttendanceServiceImpl extends ServiceImpl<AttendanceSessionMapper, 
                     boolean isActive = !now.isBefore(startTime) && !now.isAfter(endTime);
 
                     // 调试日志
-                    System.out.println(String.format("签到活动 %s: 当前=%s, 开始=%s, 结束=%s, 是否活跃=%s",
-                            session.getSessionId(), now, startTime, endTime, isActive));
+                    log.debug("签到活动 {}: 当前={}, 开始={}, 结束={}, 是否活跃={}",
+                            session.getSessionId(), now, startTime, endTime, isActive);
 
                     return isActive;
                 })
                 .collect(java.util.stream.Collectors.toList());
 
-        System.out.println("过滤后找到 " + activeSessions.size() + " 个未签到的当前时间范围内的签到活动");
+        log.debug("过滤后找到 {} 个未签到的当前时间范围内的签到活动", activeSessions.size());
 
         return activeSessions;
     }
@@ -190,12 +194,12 @@ public class AttendanceServiceImpl extends ServiceImpl<AttendanceSessionMapper, 
         LocalDateTime now = ZonedDateTime.now(shanghaiZone).toLocalDateTime();
 
         // 调试日志：输出时间信息
-        System.out.println("=== 签到时间检查 ===");
-        System.out.println("当前时间（东八区）: " + now);
-        System.out.println("签到开始时间: " + session.getStartTime());
-        System.out.println("签到结束时间: " + session.getEndTime());
-        System.out.println("当前时间是否在开始时间之前: " + now.isBefore(session.getStartTime()));
-        System.out.println("当前时间是否在结束时间之后: " + now.isAfter(session.getEndTime()));
+        log.debug("=== 签到时间检查 ===");
+        log.debug("当前时间（东八区）: {}", now);
+        log.debug("签到开始时间: {}", session.getStartTime());
+        log.debug("签到结束时间: {}", session.getEndTime());
+        log.debug("当前时间是否在开始时间之前: {}", now.isBefore(session.getStartTime()));
+        log.debug("当前时间是否在结束时间之后: {}", now.isAfter(session.getEndTime()));
 
         // 判断是否在签到时间内：当前时间 >= 开始时间 且 当前时间 <= 结束时间
         // 允许在结束时间点签到

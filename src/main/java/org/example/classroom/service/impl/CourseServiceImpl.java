@@ -9,6 +9,8 @@ import org.example.classroom.entity.*;
 import org.example.classroom.mapper.*;
 import org.example.classroom.service.CourseService;
 import org.example.classroom.util.WeekCalculator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +26,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> implements CourseService {
+
+    private static final Logger log = LoggerFactory.getLogger(CourseServiceImpl.class);
 
     @Autowired
     private CourseMapper courseMapper;
@@ -179,10 +183,10 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
 
         // 验证semesterId是否设置
         if (schedule.getSemesterId() == null || schedule.getSemesterId().trim().isEmpty()) {
-            System.out.println("警告：课程安排的semesterId为空，courseId=" + schedule.getCourseId());
+            log.warn("课程安排的semesterId为空，courseId={}", schedule.getCourseId());
             // 如果前端没有传递semesterId，保持为null（允许为空，但建议前端传递）
         } else {
-            System.out.println("课程安排semesterId已设置: " + schedule.getSemesterId() + ", courseId=" + schedule.getCourseId());
+            log.debug("课程安排semesterId已设置: {}, courseId={}", schedule.getSemesterId(), schedule.getCourseId());
         }
 
         // 使用统一的教室占用冲突检测
@@ -373,18 +377,18 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
         // 合并课程列表，去重
         java.util.Map<String, Course> allCoursesMap = new java.util.HashMap<>();
 
-        System.out.println("--- getAllStudentCourses 开始 ---");
-        System.out.println("学生ID: " + studentId + ", 班级ID: " + classId + ", 学年: " + academicYear + ", 学期: " + semester);
+        log.debug("--- getAllStudentCourses 开始 ---");
+        log.debug("学生ID: {}, 班级ID: {}, 学年: {}, 学期: {}", studentId, classId, academicYear, semester);
 
         // 1. 获取学生已选的课程
         List<StudentCourse> enrolledCourses = studentCourseMapper.selectStudentCourses(studentId, academicYear, semester);
-        System.out.println("已选课程数量: " + (enrolledCourses != null ? enrolledCourses.size() : 0));
+        log.debug("已选课程数量: {}", enrolledCourses != null ? enrolledCourses.size() : 0);
         for (StudentCourse sc : enrolledCourses) {
             if (sc.getCourseId() != null) {
                 Course course = getCourseWithDetail(sc.getCourseId());
                 if (course != null) {
                     allCoursesMap.put(course.getCourseId(), course);
-                    System.out.println("已选课程: " + course.getCourseName() + " (ID: " + course.getCourseId() + ")");
+                    log.debug("已选课程: {} (ID: {})", course.getCourseName(), course.getCourseId());
                 }
             }
         }
@@ -403,25 +407,26 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
                 classCourseWrapper.eq("semester", semester);
             }
 
-            System.out.println("查询班级课程的SQL条件: classId=" + classId + ", academicYear=" + academicYear + ", semester=" + semester);
+            log.debug("查询班级课程的SQL条件: classId={}, academicYear={}, semester={}", classId, academicYear, semester);
             List<Course> classCoursesBasic = courseMapper.selectList(classCourseWrapper);
-            System.out.println("查询到的班级课程数量: " + (classCoursesBasic != null ? classCoursesBasic.size() : 0));
+            log.debug("查询到的班级课程数量: {}", classCoursesBasic != null ? classCoursesBasic.size() : 0);
 
             // 如果按条件查询不到，尝试只按班级ID查询（不限制学年学期）
             if ((classCoursesBasic == null || classCoursesBasic.isEmpty()) &&
                     (academicYear != null || semester != null)) {
-                System.out.println("按条件未查询到课程，尝试只按班级ID查询...");
+                log.debug("按条件未查询到课程，尝试只按班级ID查询...");
                 QueryWrapper<Course> fallbackWrapper = new QueryWrapper<>();
                 fallbackWrapper.eq("class_id", classId);
                 classCoursesBasic = courseMapper.selectList(fallbackWrapper);
-                System.out.println("只按班级ID查询到的课程数量: " + (classCoursesBasic != null ? classCoursesBasic.size() : 0));
+                log.debug("只按班级ID查询到的课程数量: {}", classCoursesBasic != null ? classCoursesBasic.size() : 0);
             }
 
             // 获取每个班级课程的完整信息（包括teacherName等关联字段）
             for (Course basicCourse : classCoursesBasic) {
                 if (basicCourse != null && basicCourse.getCourseId() != null) {
-                    System.out.println("班级课程: " + basicCourse.getCourseName() + " (ID: " + basicCourse.getCourseId() +
-                            ", 学年: " + basicCourse.getAcademicYear() + ", 学期: " + basicCourse.getSemester() + ")");
+                    log.debug("班级课程: {} (ID: {}, 学年: {}, 学期: {})",
+                            basicCourse.getCourseName(), basicCourse.getCourseId(),
+                            basicCourse.getAcademicYear(), basicCourse.getSemester());
                     Course fullCourse = getCourseWithDetail(basicCourse.getCourseId());
                     if (fullCourse != null) {
                         allCoursesMap.put(fullCourse.getCourseId(), fullCourse);
@@ -429,11 +434,11 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
                 }
             }
         } else {
-            System.out.println("班级ID为空，跳过班级课程查询");
+            log.debug("班级ID为空，跳过班级课程查询");
         }
 
-        System.out.println("最终返回的课程数量: " + allCoursesMap.size());
-        System.out.println("--- getAllStudentCourses 结束 ---");
+        log.debug("最终返回的课程数量: {}", allCoursesMap.size());
+        log.debug("--- getAllStudentCourses 结束 ---");
         return new java.util.ArrayList<>(allCoursesMap.values());
     }
 
@@ -509,7 +514,7 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
                 }
             } catch (Exception e) {
                 // 记录错误但继续处理其他分配
-                System.err.println("分配课程失败: " + e.getMessage());
+                log.error("分配课程失败: {}", e.getMessage(), e);
             }
         }
         return successCount;
@@ -574,7 +579,7 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
                 }
             } catch (Exception e) {
                 // 记录错误但继续处理其他班级
-                System.err.println("分配课程到班级失败: " + e.getMessage());
+                log.error("分配课程到班级失败: {}", e.getMessage(), e);
             }
         }
         return successCount > 0;

@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.example.classroom.entity.Announcement;
@@ -22,28 +24,28 @@ import java.util.stream.Collectors;
 public class AnnouncementServiceImpl extends ServiceImpl<AnnouncementMapper, Announcement>
         implements AnnouncementService {
 
+    private static final Logger log = LoggerFactory.getLogger(AnnouncementServiceImpl.class);
+
     @Autowired
     private UserMapper userMapper;
 
     @Override
     public IPage<Announcement> getActiveAnnouncements(Integer page, Integer size) {
-        System.out.println("=== 查询有效公告 ===");
-        System.out.println("页码: " + page + ", 每页大小: " + size);
+        log.debug("=== 查询有效公告 ===");
+        log.debug("页码: {}, 每页大小: {}", page, size);
 
         // 由于MyBatis-Plus分页插件在处理带JOIN的@Select时有问题，直接手动查询和分页
         // 1. 先查询所有公告（不限制时间），看看数据库中的数据
-        System.out.println("开始查询所有公告（不限制时间）...");
+        log.debug("开始查询所有公告（不限制时间）...");
         List<Announcement> allAnnouncementsInDb = baseMapper.selectList(null);
-        System.out.println("数据库中总公告数: " + (allAnnouncementsInDb != null ? allAnnouncementsInDb.size() : 0));
+        log.debug("数据库中总公告数: {}", allAnnouncementsInDb != null ? allAnnouncementsInDb.size() : 0);
 
         // 输出所有公告的时间信息用于调试
         if (allAnnouncementsInDb != null && !allAnnouncementsInDb.isEmpty()) {
-            System.out.println("=== 数据库中的公告时间信息 ===");
+            log.debug("=== 数据库中的公告时间信息 ===");
             allAnnouncementsInDb.forEach(a -> {
-                System.out.println("公告ID: " + a.getAnnouncementId() +
-                        ", 标题: " + a.getTitle() +
-                        ", 开始时间: " + a.getStartTime() +
-                        ", 结束时间: " + a.getEndTime());
+                log.debug("公告ID: {}, 标题: {}, 开始时间: {}, 结束时间: {}",
+                        a.getAnnouncementId(), a.getTitle(), a.getStartTime(), a.getEndTime());
             });
         }
 
@@ -51,7 +53,7 @@ public class AnnouncementServiceImpl extends ServiceImpl<AnnouncementMapper, Ann
         // 使用东八区时间，确保时间正确
         ZoneId shanghaiZone = ZoneId.of("Asia/Shanghai");
         LocalDateTime now = ZonedDateTime.now(shanghaiZone).toLocalDateTime();
-        System.out.println("当前时间（东八区）: " + now);
+        log.debug("当前时间（东八区）: {}", now);
 
         List<Announcement> allAnnouncements = allAnnouncementsInDb != null
                 ? allAnnouncementsInDb.stream()
@@ -61,8 +63,8 @@ public class AnnouncementServiceImpl extends ServiceImpl<AnnouncementMapper, Ann
                     }
                     boolean isValid = !now.isBefore(a.getStartTime()) && !now.isAfter(a.getEndTime());
                     if (!isValid) {
-                        System.out.println("公告 " + a.getAnnouncementId() + " 不在有效期内: " +
-                                "开始=" + a.getStartTime() + ", 结束=" + a.getEndTime() + ", 当前=" + now);
+                        log.debug("公告 {} 不在有效期内: 开始={}, 结束={}, 当前={}",
+                                a.getAnnouncementId(), a.getStartTime(), a.getEndTime(), now);
                     }
                     return isValid;
                 })
@@ -84,7 +86,7 @@ public class AnnouncementServiceImpl extends ServiceImpl<AnnouncementMapper, Ann
                 : java.util.Collections.emptyList();
 
         long total = allAnnouncements != null ? allAnnouncements.size() : 0;
-        System.out.println("过滤后的有效公告数量: " + total);
+        log.debug("过滤后的有效公告数量: {}", total);
 
         // 2. 创建分页结果对象
         Page<Announcement> result = new Page<>(page, size);
@@ -93,7 +95,7 @@ public class AnnouncementServiceImpl extends ServiceImpl<AnnouncementMapper, Ann
         // 3. 如果总数为0，直接返回空结果
         if (total == 0) {
             result.setRecords(java.util.Collections.emptyList());
-            System.out.println("总数为0，返回空结果");
+            log.debug("总数为0，返回空结果");
             return result;
         }
 
@@ -105,11 +107,11 @@ public class AnnouncementServiceImpl extends ServiceImpl<AnnouncementMapper, Ann
                     .distinct()
                     .collect(Collectors.toList());
 
-            System.out.println("需要查询的adminId数量: " + adminIds.size());
+            log.debug("需要查询的adminId数量: {}", adminIds.size());
 
             if (!adminIds.isEmpty()) {
                 List<User> users = userMapper.selectBatchIds(adminIds);
-                System.out.println("查询到的用户数量: " + users.size());
+                log.debug("查询到的用户数量: {}", users.size());
 
                 Map<String, String> adminNameMap = users.stream()
                         .collect(Collectors.toMap(
@@ -134,17 +136,16 @@ public class AnnouncementServiceImpl extends ServiceImpl<AnnouncementMapper, Ann
                     : java.util.Collections.emptyList();
 
             result.setRecords(pagedList);
-            System.out.println("手动分页后记录数: " + pagedList.size());
+            log.debug("手动分页后记录数: {}", pagedList.size());
 
             // 输出详细信息
             pagedList.forEach(announcement -> {
-                System.out.println("公告ID: " + announcement.getAnnouncementId() +
-                        ", 标题: " + announcement.getTitle() +
-                        ", 管理员: " + announcement.getAdminName());
+                log.debug("公告ID: {}, 标题: {}, 管理员: {}",
+                        announcement.getAnnouncementId(), announcement.getTitle(), announcement.getAdminName());
             });
         } else {
             result.setRecords(java.util.Collections.emptyList());
-            System.out.println("查询结果为空");
+            log.debug("查询结果为空");
         }
 
         return result;

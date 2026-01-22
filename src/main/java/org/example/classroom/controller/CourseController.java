@@ -10,6 +10,8 @@ import org.example.classroom.entity.User;
 import org.example.classroom.mapper.UserMapper;
 import org.example.classroom.service.CourseService;
 import org.example.classroom.util.CurrentUserUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -24,6 +26,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/course")
 public class CourseController {
+
+    private static final Logger log = LoggerFactory.getLogger(CourseController.class);
 
     @Autowired
     private CourseService courseService;
@@ -530,18 +534,15 @@ public class CourseController {
             }
 
             String classId = user.getClassId();
-            System.out.println("=== 获取学生课程列表 ===");
-            System.out.println("学生ID: " + studentId);
-            System.out.println("班级ID: " + classId);
-            System.out.println("学年: " + academicYear);
-            System.out.println("学期: " + semester);
+            log.debug("=== 获取学生课程列表 ===");
+            log.debug("学生ID: {}, 班级ID: {}, 学年: {}, 学期: {}", studentId, classId, academicYear, semester);
 
             // 处理空字符串参数
             String yearParam = (academicYear != null && academicYear.trim().isEmpty()) ? null : academicYear;
 
             // 获取所有课程：包括班级课程和已选课程
             List<Course> allCourses = courseService.getAllStudentCourses(studentId, classId, yearParam, semester);
-            System.out.println("查询到的课程数量: " + (allCourses != null ? allCourses.size() : 0));
+            log.debug("查询到的课程数量: {}", allCourses != null ? allCourses.size() : 0);
 
             // 转换为统一格式，方便前端统一处理
             List<Map<String, Object>> courseList = allCourses.stream().map(course -> {
